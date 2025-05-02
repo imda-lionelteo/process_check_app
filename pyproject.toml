@@ -1,46 +1,19 @@
-[tool.poetry]
-name = "ms-v1"
-version = "0.7.0"
-description = "A simple and modular tool to evaluate and red-team any LLM application."
-authors = ["The Moonshot Team <our.moonshot.team@gmail.com>"]
+[project]
+name = "process-check-app"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Lionel Teo",email = "lionel_teo@imda.gov.sg"}
+]
 readme = "README.md"
-license = "Apache-2.0"
-packages = []
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit (>=1.45.0,<2.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "bleach (>=6.2.0,<7.0.0)"
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-boto3 = "^1.36.21"
-pydantic = "^2.10.6"
-openai = "^1.63.0"
-click = "^8.1.8"
-toml = "^0.10.2"
-wonderwords = "^2.2.0"
-rich = "^13.9.4"
-
-[tool.poetry.group.process_checks.dependencies]
-streamlit = "^1.44.0"
-openpyxl = "^3.1.5"
-bleach = "^6.2.0"
-
-[tool.poetry.group.dev.dependencies]
-anybadge = "^1.14.0"
-black = "^24.8.0"
-coverage = "^7.7.0"
-flake8 = "^7.1.0"
-isort = "^5.13.2"
-poetry-plugin-export = "^1.8.0"
-pre-commit = "^4.1.0"
-pyinstrument = "^4.7.1"
-pytest = "^8.3.4"
-pytest-asyncio = "^0.24.0"
-pytest-cov = "^5.0.0"
-pytest-html = "^4.1.1"
-pytest-json = "^0.4.0"
-pytest-mock = "^3.14.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.extras]
-testing = ["pytest", "pyyaml", "pytest-benchmark", "coverage"]
