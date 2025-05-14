@@ -1,7 +1,13 @@
+import http.server
+import socketserver
+import threading
+
 import streamlit as st
+from frontend.generate_report import display_generate_report
 from frontend.get_started import getting_started
 from frontend.process_check import display_process_check
 from frontend.triage import triage
+from frontend.upload_result import upload_result
 from frontend.welcome import welcome
 from streamlit.logger import get_logger
 
@@ -180,7 +186,10 @@ def display_current_section():
         getting_started()  # Display the getting started section
     elif section == 3:
         display_process_check()  # Display the process checks section
-    # sections 4 and 5 are placeholders and do not have content yet.
+    elif section == 4:
+        upload_result()  # Display the upload result section
+    elif section == 5:
+        display_generate_report()  # Display the generate report section
 
 
 def set_custom_width_layout():
@@ -217,6 +226,16 @@ def set_custom_width_layout():
     )
 
 
+def start_http_server():
+    """Start a simple HTTP server on port 8000."""
+    PORT = 8000
+    Handler = http.server.SimpleHTTPRequestHandler
+
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print(f"Serving at port {PORT}")
+        httpd.serve_forever()
+
+
 def main():
     """
     Initialize the application and display the UI components.
@@ -233,6 +252,14 @@ def main():
 
         # Initialize a new workspace
         st.session_state["section"] = 0
+
+    # Start the HTTP server in a new thread
+    # This thread is used to retrieve and preview the PDF because HTML cannot preview the PDF if the file is too large
+    server_thread = threading.Thread(target=start_http_server)
+    server_thread.daemon = (
+        True  # This allows the program to exit even if the thread is running
+    )
+    server_thread.start()
 
     # Set the page layout and width
     set_custom_width_layout()

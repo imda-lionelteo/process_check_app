@@ -133,7 +133,7 @@ def display_header():
         None
     """
     st.markdown(
-        '<h1 class="main-header">Welcome to Process Check for Generative AI</h1>',
+        '<h1 class="main-header">Welcome to Process Checks for Generative AI</h1>',
         unsafe_allow_html=True,
     )
 

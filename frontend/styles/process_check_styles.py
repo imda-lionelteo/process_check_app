@@ -28,6 +28,11 @@ def get_main_styles() -> str:
     .element-container {
         margin-bottom: 0.5rem !important;
     }
+
+    /* Progress bar styling */
+    .stProgress > div > div > div > div {
+        background-color: #3b82f6 !important;
+    }
     </style>
     """  # noqa: W293
 

@@ -19,6 +19,247 @@ def create_actions_component(
     Returns:
         str or None: Action to perform if a button was clicked, None otherwise
     """
+    # Get component directory and set HTML path
+    component_dir = os.path.dirname(__file__)
+    actions_html_path = os.path.join(component_dir, "index.html")
+
+    # Generate the HTML
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            /* Workspace info container styles */
+            .workspace-info-container {
+                display: flex;
+                flex-direction: row;
+                border: none;
+                border-radius: 0;
+                margin-bottom: 16px;
+                padding: 0;
+                overflow: hidden;
+                font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+            }
+            
+            .workspace-info-left {
+                flex: 3;
+                padding: 20px 24px 20px 0;
+                position: relative;
+            }
+            
+            .workspace-info-divider {
+                width: 1px;
+                background-color: #e5e7eb;
+                margin: 0 12px;
+            }
+            
+            .workspace-info-field {
+                font-size: 12px;
+                color: #6b7280;
+                font-weight: 500;
+                margin-bottom: 6px;
+                letter-spacing: 0.025em;
+            }
+            
+            .workspace-info-value {
+                font-size: 15px;
+                font-weight: 400;
+                color: #111827;
+                line-height: 1.5;
+                margin-bottom: 16px;
+                display: block;
+            }
+            
+            .workspace-info-description {
+                display: block;
+                font-size: 16px;
+                color: #4b5563;
+                margin-bottom: 18px;
+                line-height: 1.5;
+                margin-top: 4px;
+            }
+            
+            .workspace-info-field.workspace-id-field {
+                font-size: 14px;
+                color: #4b5563;
+                font-weight: 600;
+                margin-top: 16px;
+                margin-bottom: 8px;
+                display: block;
+            }
+            
+            .workspace-id-tag {
+                display: inline-block;
+                font-size: 14px;
+                padding: 5px 10px;
+                background-color: #f0f4f8;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                color: #1f2937;
+                font-family: 'Roboto Mono', monospace;
+                letter-spacing: 0.025em;
+                font-weight: 500;
+            }
+            
+            .edit-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                background-color: transparent;
+                border: none;
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: #6b7280;
+                transition: all 0.2s;
+            }
+            
+            .edit-btn:hover {
+                background-color: #f3f4f6;
+                color: #374151;
+            }
+            
+            .material-icon {
+                font-size: 16px;
+            }
+        </style>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    </head>
+    <body>
+        <div id="actions-container">
+            <div class="workspace-info-container">
+                <div class="workspace-info-left" style="width: 400px;">
+                    <div style="width: 100%; overflow: hidden;">
+                        <div class="workspace-info-field">App Name</div>
+                        <span class="workspace-info-value" id="app-name" style="display: block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"></span>
+                    </div>
+                    <div style="width: 100%; overflow: hidden;">
+                        <div class="workspace-info-field">App Description</div>
+                        <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
+                    </div>
+                    <div style="margin-top: 16px; width: 100%; overflow: hidden;">
+                        <div class="workspace-info-field workspace-id-field">Workspace ID</div>
+                        <span class="workspace-id-tag" id="workspace-id" style="display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
+                    </div>
+                    <button class="edit-btn" id="edit-button">
+                        <span class="material-symbols-rounded material-icon">edit</span>
+                    </button>
+                </div>
+                <div class="workspace-info-divider"></div>
+            </div>
+        </div>
+        
+        <script>
+            // Function to send messages to Streamlit
+            function sendMessageToStreamlit(type, data) {
+                const outData = Object.assign({
+                    isStreamlitMessage: true,
+                    type: type,
+                }, data);
+                window.parent.postMessage(outData, "*");
+            }
+            
+            // Initialize component
+            function init() {
+                sendMessageToStreamlit("streamlit:componentReady", {apiVersion: 1});
+            }
+            
+            // Set the frame height
+            function setFrameHeight(height) {
+                sendMessageToStreamlit("streamlit:setFrameHeight", {height: height});
+            }
+            
+            // Send data to Python when buttons are clicked
+            function sendDataToPython(action) {
+                sendMessageToStreamlit("streamlit:setComponentValue", {
+                    value: action,
+                    dataType: "json",
+                });
+            }
+            
+            // Handle clicks on buttons
+            document.getElementById('edit-button').addEventListener('click', function() {
+                sendDataToPython('edit');
+            });
+            
+            // Handle data from Python
+            function onDataFromPython(event) {
+                if (event.data.type !== "streamlit:render") return;
+                
+                const data = event.data.args;
+                if (!data) return;
+                
+                // Update UI elements with data from Python
+                const workspaceId = data.workspace_id || "";
+                const appName = data.app_name || "";
+                const appDescription = data.app_description || "";
+                
+                document.getElementById('workspace-id').innerHTML = workspaceId || '<span style="color:#9ca3af;">No workspace ID provided.</span>';
+                document.getElementById('app-name').innerHTML = appName || '<span style="color:#9ca3af;">No application name provided.</span>';
+                document.getElementById('app-description').innerHTML = appDescription || '<span style="color:#9ca3af;">No description provided.</span>';
+                
+                // Calculate dynamic height based on content
+                calculateAndSetHeight();
+            }
+            
+            // Function to dynamically calculate height
+            function calculateAndSetHeight() {
+                const container = document.getElementById('actions-container');
+                const containerHeight = container.getBoundingClientRect().height;
+                
+                // Apply min, max constraints with padding
+                const finalHeight = Math.min(Math.max(containerHeight + 20, 180), 450);
+                setFrameHeight(finalHeight);
+            }
+            
+            // Event listeners
+            window.addEventListener("message", onDataFromPython);
+            window.addEventListener("load", () => setTimeout(calculateAndSetHeight, 100));
+            window.addEventListener("resize", calculateAndSetHeight);
+            
+            // Initialize the component
+            init();
+        </script>
+    </body>
+    </html>
+    """  # noqa: E501, W291, W293
+
+    # Write the HTML to file
+    with open(actions_html_path, "w") as f:
+        f.write(html_content)
+
+    # Create and return the component
+    component = components.declare_component("actions_component", path=component_dir)
+    return component(
+        workspace_id=workspace_id,
+        app_name=app_name,
+        app_description=app_description,
+        key="actions_component",
+    )
+
+
+def create_actions_component_no_excel(
+    workspace_id: str,
+    company_name: str,
+    app_name: str,
+    app_description: str,
+):
+    """
+    Create a Streamlit component for workspace information and action buttons.
+
+    Args:
+        workspace_id: The ID of the current workspace
+        company_name: The name of the company
+        app_name: The name of the app
+        app_description: The description of the app
+
+    Returns:
+        str or None: Action to perform if a button was clicked, None otherwise
+    """
     # Create component directory
     component_dir = os.path.dirname(__file__)
 
@@ -145,31 +386,6 @@ def create_actions_component(
                 background-color: #f3f4f6;
                 color: #374151;
             }
-            
-            .action-button {
-                background-color: white;
-                border: 1px solid #d1d5db;
-                padding: 6px 14px;
-                border-radius: 4px;
-                font-size: 13px;
-                color: #374151;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                cursor: pointer;
-                width: 100%;
-                transition: all 0.2s;
-            }
-            
-            .action-button:hover {
-                background-color: #f9fafb;
-                border-color: #9ca3af;
-            }
-            
-            .material-icon {
-                font-size: 16px;
-            }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     </head>
@@ -177,6 +393,10 @@ def create_actions_component(
         <div id="actions-container">
             <div class="workspace-info-container">
                 <div class="workspace-info-left">
+                    <div>
+                        <div class="workspace-info-field">Company Name</div>
+                        <span class="workspace-info-value" id="company-name"></span>
+                    </div>
                     <div>
                         <div class="workspace-info-field">App Name</div>
                         <span class="workspace-info-value" id="app-name"></span>
@@ -192,20 +412,6 @@ def create_actions_component(
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
                     </button>
-                </div>
-                <div class="workspace-info-divider"></div>
-                <div class="workspace-info-right">
-                    <div class="autosave-indicator">✓ Auto-save enabled</div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                        <button class="action-button" id="import-button">
-                            <span class="material-symbols-rounded material-icon">upload</span>
-                            <span style="text-overflow: ellipsis; overflow: hidden;">Import from Excel</span>
-                        </button>
-                        <button class="action-button" id="export-button">
-                            <span class="material-symbols-rounded material-icon">download</span>
-                            <span style="text-overflow: ellipsis; overflow: hidden;">Export as Excel</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -243,14 +449,6 @@ def create_actions_component(
                 sendDataToPython('edit');
             });
             
-            document.getElementById('import-button').addEventListener('click', function() {
-                sendDataToPython('import');
-            });
-            
-            document.getElementById('export-button').addEventListener('click', function() {
-                sendDataToPython('export');
-            });
-            
             // Handle data from Python
             function onDataFromPython(event) {
                 if (event.data.type !== "streamlit:render") return;
@@ -260,10 +458,12 @@ def create_actions_component(
                 
                 // Update UI elements with data from Python
                 const workspaceId = data.workspace_id || "";
+                const companyName = data.company_name || "";
                 const appName = data.app_name || "";
                 const appDescription = data.app_description || "";
                 
                 document.getElementById('workspace-id').innerHTML = workspaceId || '<span style="color:#9ca3af;">No workspace ID provided.</span>';
+                document.getElementById('company-name').innerHTML = companyName || '<span style="color:#9ca3af;">No company name provided.</span>';
                 document.getElementById('app-name').innerHTML = appName || '<span style="color:#9ca3af;">No application name provided.</span>';
                 document.getElementById('app-description').innerHTML = appDescription || '<span style="color:#9ca3af;">No description provided.</span>';
                 
@@ -321,6 +521,7 @@ def create_actions_component(
     # Return the instantiated component with updated data
     return component(
         workspace_id=workspace_id,
+        company_name=company_name,
         app_name=app_name,
         app_description=app_description,
         key="actions_component",

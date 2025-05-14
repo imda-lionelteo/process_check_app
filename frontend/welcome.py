@@ -23,18 +23,21 @@ def click_next_button():
 
 def click_start_over_button() -> None:
     """
-    Reset the process checks by clearing the session state and redirecting to the welcome page.
+    Return to the home page by clearing the session state.
 
-    Displays a confirmation dialog before resetting to prevent accidental data loss.
+    Displays a confirmation dialog before returning to the home page.
+    Progress is automatically saved, so no data will be lost.
 
     Returns:
         None
     """
 
     # Using st.dialog as a function decorator
-    @st.dialog("Confirm Reset")
+    @st.dialog("Return to Home Page")
     def confirm_reset_dialog() -> None:
-        st.write("Are you sure you want to start over? All your progress will be lost.")
+        st.write(
+            "Do you want to return to Home Page? Don't worry, your progress has been saved."
+        )
         col1, col2 = st.columns(2)
 
         with col1:
@@ -70,7 +73,7 @@ def display_navigation_buttons() -> None:
     with col1:
         if st.session_state["section"] >= 1:
             st.button(
-                "↺ Start Over",
+                ":material/home: Home",
                 on_click=click_start_over_button,
                 use_container_width=True,
             )
@@ -147,7 +150,7 @@ def welcome():
 
         - U.S. National Institute of Standards and Technology (NIST) Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile (US NIST AI RMF)
 
-        AI Verify processes that are mapped to these frameworks will have respective labels e.g. “Hiroshima Process CoC” or “US NIST AI RMF” next to them.
+        AI Verify processes that are mapped to these frameworks will have respective labels e.g. "Hiroshima Process CoC" or "US NIST AI RMF" next to them.
 
         ### Technical Testing for Generative AI Applications
         In the process checks, references were made to conduct technical tests on the Generative AI applications.

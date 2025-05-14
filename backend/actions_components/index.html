@@ -21,17 +21,6 @@
                 position: relative;
             }
             
-            .workspace-info-right {
-                flex: 1;
-                padding: 20px 0 20px 24px;
-                background-color: #ffffff;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 16px;
-            }
-            
             .workspace-info-divider {
                 width: 1px;
                 background-color: #e5e7eb;
@@ -48,7 +37,7 @@
             
             .workspace-info-value {
                 font-size: 15px;
-                font-weight: 600;
+                font-weight: 400;
                 color: #111827;
                 line-height: 1.5;
                 margin-bottom: 16px;
@@ -86,16 +75,6 @@
                 font-weight: 500;
             }
             
-            .autosave-indicator {
-                color: #10b981;
-                font-size: 13px;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-bottom: 10px;
-            }
-            
             .edit-btn {
                 position: absolute;
                 top: 16px;
@@ -118,27 +97,6 @@
                 color: #374151;
             }
             
-            .action-button {
-                background-color: white;
-                border: 1px solid #d1d5db;
-                padding: 6px 14px;
-                border-radius: 4px;
-                font-size: 13px;
-                color: #374151;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                cursor: pointer;
-                width: 100%;
-                transition: all 0.2s;
-            }
-            
-            .action-button:hover {
-                background-color: #f9fafb;
-                border-color: #9ca3af;
-            }
-            
             .material-icon {
                 font-size: 16px;
             }
@@ -148,37 +106,24 @@
     <body>
         <div id="actions-container">
             <div class="workspace-info-container">
-                <div class="workspace-info-left">
-                    <div>
+                <div class="workspace-info-left" style="width: 400px;">
+                    <div style="width: 100%; overflow: hidden;">
                         <div class="workspace-info-field">App Name</div>
-                        <span class="workspace-info-value" id="app-name"></span>
+                        <span class="workspace-info-value" id="app-name" style="display: block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"></span>
                     </div>
-                    <div>
+                    <div style="width: 100%; overflow: hidden;">
                         <div class="workspace-info-field">App Description</div>
-                        <span class="workspace-info-description" id="app-description"></span>
+                        <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
                     </div>
-                    <div style="margin-top: 16px;">
+                    <div style="margin-top: 16px; width: 100%; overflow: hidden;">
                         <div class="workspace-info-field workspace-id-field">Workspace ID</div>
-                        <span class="workspace-id-tag" id="workspace-id"></span>
+                        <span class="workspace-id-tag" id="workspace-id" style="display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
                     </div>
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
                     </button>
                 </div>
                 <div class="workspace-info-divider"></div>
-                <div class="workspace-info-right">
-                    <div class="autosave-indicator">✓ Auto-save enabled</div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                        <button class="action-button" id="import-button">
-                            <span class="material-symbols-rounded material-icon">upload</span>
-                            <span style="text-overflow: ellipsis; overflow: hidden;">Import from Excel</span>
-                        </button>
-                        <button class="action-button" id="export-button">
-                            <span class="material-symbols-rounded material-icon">download</span>
-                            <span style="text-overflow: ellipsis; overflow: hidden;">Export as Excel</span>
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -215,14 +160,6 @@
                 sendDataToPython('edit');
             });
             
-            document.getElementById('import-button').addEventListener('click', function() {
-                sendDataToPython('import');
-            });
-            
-            document.getElementById('export-button').addEventListener('click', function() {
-                sendDataToPython('export');
-            });
-            
             // Handle data from Python
             function onDataFromPython(event) {
                 if (event.data.type !== "streamlit:render") return;
@@ -245,36 +182,18 @@
             
             // Function to dynamically calculate height
             function calculateAndSetHeight() {
-                // Get the actual height of the container
                 const container = document.getElementById('actions-container');
                 const containerHeight = container.getBoundingClientRect().height;
                 
-                // Set a minimum height to prevent it from being too small
-                const minHeight = 180;
-                // Respect the max height of 450
-                const maxHeight = 450;
-                
-                // Add some padding to ensure content is fully visible
-                const heightWithPadding = containerHeight + 20;
-                
-                // Apply min, max constraints
-                const finalHeight = Math.min(Math.max(heightWithPadding, minHeight), maxHeight);
-                
-                // Set the height
+                // Apply min, max constraints with padding
+                const finalHeight = Math.min(Math.max(containerHeight + 20, 180), 450);
                 setFrameHeight(finalHeight);
             }
             
             // Event listeners
             window.addEventListener("message", onDataFromPython);
-            window.addEventListener("load", function() {
-                // Initial height calculation after DOM content is loaded
-                setTimeout(calculateAndSetHeight, 100);
-            });
-            
-            // Also recalculate on window resize
-            window.addEventListener("resize", function() {
-                calculateAndSetHeight();
-            });
+            window.addEventListener("load", () => setTimeout(calculateAndSetHeight, 100));
+            window.addEventListener("resize", calculateAndSetHeight);
             
             // Initialize the component
             init();

@@ -12,7 +12,6 @@ from backend.workspace import (
 
 # File paths and URLs for resources
 GETTING_STARTED_DIAG_PATH = "assets/getting_started_diag.png"
-TESTING_FRAMEWORK_FILE_URL_PDF = "https://www.cpf.gov.sg/content/dam/web/member/faq/general-information---useful-tips/documents/Guide_to_view_and_save_CPF_statements.pdf"  # noqa: E501
 TESTING_FRAMEWORK_FILE_URL_EXCEL = "https://www.cpf.gov.sg/content/dam/web/member/faq/general-information---useful-tips/documents/Guide_to_view_and_save_CPF_statements.xlsx"  # noqa: E501
 
 
@@ -170,18 +169,21 @@ def click_next_button() -> None:
 
 def click_start_over_button() -> None:
     """
-    Reset the process checks by clearing the session state and redirecting to the welcome page.
+    Return to the home page by clearing the session state.
 
-    Displays a confirmation dialog before resetting to prevent accidental data loss.
+    Displays a confirmation dialog before returning to the home page.
+    Progress is automatically saved, so no data will be lost.
 
     Returns:
         None
     """
 
     # Using st.dialog as a function decorator
-    @st.dialog("Confirm Reset")
+    @st.dialog("Return to Home Page")
     def confirm_reset_dialog() -> None:
-        st.write("Are you sure you want to start over? All your progress will be lost.")
+        st.write(
+            "Do you want to return to Home Page? Don't worry, your progress has been saved."
+        )
         col1, col2 = st.columns(2)
 
         with col1:
@@ -233,7 +235,7 @@ def display_getting_started() -> None:
     st.info(
         f"""
         You can download a copy of the testing framework here\n
-        [Download Testing Framework - PDF]({TESTING_FRAMEWORK_FILE_URL_PDF})\n
+        Download Testing Framework - PDF\n
         [Download Testing Framework - Excel]({TESTING_FRAMEWORK_FILE_URL_EXCEL})
     """
     )
@@ -285,7 +287,7 @@ def display_navigation_buttons() -> None:
     with col1:
         if st.session_state["section"] >= 1:
             st.button(
-                "↺ Start Over",
+                ":material/home: Home",
                 on_click=click_start_over_button,
                 use_container_width=True,
             )

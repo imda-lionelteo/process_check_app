@@ -1,11 +1,12 @@
 import re
+from datetime import datetime
 
 import bleach
 import streamlit as st
 from backend.actions_components.actions_component import create_actions_component
 from backend.cards_component.cards_component import create_component
 from backend.map import get_map_color_mapping, load_map_data
-from backend.spreadsheet import load_principles_data
+from backend.spreadsheet import export_excel, read_principles_from_excel
 from backend.workspace import save_workspace
 from frontend.styles.process_check_styles import (
     get_main_styles,
@@ -14,7 +15,10 @@ from frontend.styles.process_check_styles import (
 )
 
 # Global variable for the reference Excel file path
-REFERENCE_EXCEL_FILE_PATH = "assets/reference.xlsx"
+REFERENCE_EXCEL_FILE_PATH = "assets/AI_Verify_Testing_Framework_April_2025.xlsx"
+
+# Implementation choices for process checks
+IMPLEMENTATION_CHOICES = ("Yes", "No", "N/A")
 
 
 class ProcessCheck:
@@ -27,9 +31,22 @@ class ProcessCheck:
 
     def __init__(self):
         """
-        Initialize the ProcessCheck class and load principles data from the specified Excel file.
+        Initialize the ProcessCheck class and load principles data.
+
+        This method handles two scenarios:
+        1. If imported Excel principles data exists in the session state:
+            - Loads that data into self.principles_data
+            - Removes existing process checks from workspace data
+            - Clears the imported data from session state
+        2. Otherwise:
+            - Loads principles data from the reference Excel file specified by REFERENCE_EXCEL_FILE_PATH
         """
-        self.principles_data = load_principles_data(REFERENCE_EXCEL_FILE_PATH)
+        if st.session_state.get("imported_excel_principles_data", {}):
+            self.principles_data = st.session_state["imported_excel_principles_data"]
+            st.session_state["workspace_data"].pop("process_checks", None)
+            st.session_state["imported_excel_principles_data"] = {}
+        else:
+            self.principles_data = read_principles_from_excel(REFERENCE_EXCEL_FILE_PATH)
 
     def _filter_principle_checks(self, principle_key: str) -> dict:
         """
@@ -45,10 +62,11 @@ class ProcessCheck:
         for outcome_id, processes in st.session_state["workspace_data"][
             "process_checks"
         ].items():
-            principle_processes = {}
-            for process_id, process_info in processes.items():
-                if process_info["principle_key"] == principle_key:
-                    principle_processes[process_id] = process_info
+            principle_processes = {
+                process_id: process_info
+                for process_id, process_info in processes.items()
+                if process_info["principle_key"] == principle_key
+            }
 
             if principle_processes:
                 principle_checks[outcome_id] = principle_processes
@@ -59,19 +77,12 @@ class ProcessCheck:
         """
         Calculate progress metrics for the progress bar.
 
-        Automatically retrieves question counts and calculates progress metrics.
-
         Returns:
-            tuple: Contains (progress_ratio, progress_message) where:
-                - progress_ratio: Float between 0-1 representing completion percentage
-                - progress_message: Formatted string describing the progress
+            tuple: Contains (progress_ratio, progress_message)
         """
-        total_questions = st.session_state["workspace_data"]["progress_data"].get(
-            "total_questions", 0
-        )
-        answered_questions = st.session_state["workspace_data"]["progress_data"].get(
-            "total_answered_questions", 0
-        )
+        progress_data = st.session_state["workspace_data"]["progress_data"]
+        total_questions = progress_data.get("total_questions", 0)
+        answered_questions = progress_data.get("total_answered_questions", 0)
 
         progress_ratio = (
             answered_questions / total_questions if total_questions > 0 else 0
@@ -85,40 +96,91 @@ class ProcessCheck:
         self, sorted_checks: list, principle_key: str
     ) -> dict:
         """
-        Group process checks by their outcome ID.
+        Group process checks by their outcome ID and prepare the data structure for each check.
 
         Args:
-            sorted_checks: List of sorted process check tuples (id, data).
-            principle_key: The key of the principle these checks belong to.
+            sorted_checks: List of tuples (process_id, process_data)
+            principle_key: String identifier for the principle these checks belong to.
 
         Returns:
-            dict: Dictionary of process checks grouped by outcome ID.
+            dict: Grouped process checks by outcome ID
         """
         outcome_groups = {}
+        all_keys = self.get_all_process_check_keys()
         for process_id, process_data in sorted_checks:
             outcome_id = process_data.get("outcome_id", "")
+            if not outcome_id:
+                continue
             if outcome_id not in outcome_groups:
                 outcome_groups[outcome_id] = []
+            # Build process_info dynamically
+            process_info = {k: process_data.get(k, "") for k in all_keys}
 
-            # Prepare the process data structure
-            process_info = {
-                "elaboration": "",
-                "evidence": process_data.get("evidence", "").strip(),
-                "implementation": None,
-                "nature_of_evidence": process_data.get(
-                    "nature_of_evidence", ""
-                ).strip(),
-                "outcome_description": process_data.get("outcomes", ""),
-                "outcome_id": outcome_id,
-                "principle_key": principle_key,
-                "process_id": process_id,
-                "process_to_achieve_outcomes": process_data.get(
-                    "process_to_achieve_outcomes", ""
-                ).strip(),
-            }
+            # Check if implementation value is in IMPLEMENTATION_CHOICES
+            if (
+                "implementation" in process_info
+                and process_info["implementation"] not in IMPLEMENTATION_CHOICES
+            ):
+                process_info["implementation"] = None
+
+            process_info["principle_key"] = principle_key
+            process_info["process_id"] = process_id
             outcome_groups[outcome_id].append(process_info)
-
         return outcome_groups
+
+    def _merge_imported_implementation_data(
+        self, import_excel_file
+    ) -> tuple[dict, str, bool]:
+        """
+        Merge implementation and elaboration values from an imported Excel file with existing principles data.
+
+        Args:
+            import_excel_file: The Excel file containing implementation data to merge
+
+        Returns:
+            tuple: (merged_data, error_message, success_flag)
+        """
+        self.uploaded_file_data = read_principles_from_excel(import_excel_file)
+        if not self.uploaded_file_data:
+            return {}, "Failed to load principles data from file", False
+
+        # Create a deep copy of the current principles data
+        updated_principles_data = self.principles_data.copy()
+
+        # Dynamically determine fields to compare (excluding implementation and elaboration)
+        fields_to_compare = self.get_all_process_check_keys()
+        fields_to_compare = [
+            k for k in fields_to_compare if k not in ("implementation", "elaboration")
+        ]
+
+        # Iterate through each principle in the uploaded data
+        for principle_key, principle_data in self.uploaded_file_data.items():
+            if principle_key not in updated_principles_data:
+                continue
+
+            # Get the process checks for this principle
+            uploaded_checks = principle_data.get("process_checks", {})
+            current_checks = updated_principles_data[principle_key].get(
+                "process_checks", {}
+            )
+
+            # Iterate through each process check
+            for check_id, check_data in uploaded_checks.items():
+                if check_id not in current_checks:
+                    continue
+
+                # Get the current check data
+                current_check = current_checks[check_id]
+
+                # Check if all fields match
+                if all(
+                    check_data.get(field) == current_check.get(field)
+                    for field in fields_to_compare
+                ):
+                    current_check["implementation"] = check_data.get("implementation")
+                    current_check["elaboration"] = check_data.get("elaboration")
+
+        return updated_principles_data, "", True
 
     def _prepare_principles_data_with_progress(self) -> dict:
         """
@@ -128,18 +190,17 @@ class ProcessCheck:
             dict: Principles data with added progress metrics.
         """
         principles_data_with_progress = {}
+        progress_data = st.session_state["workspace_data"]["progress_data"][
+            "principles"
+        ]
+
         for principle_key, principle_data in self.principles_data.items():
             # Make a shallow copy of the principle data
             principle_copy = principle_data.copy()
 
-            # Add progress metrics if available in the stats
-            if (
-                principle_key
-                in st.session_state["workspace_data"]["progress_data"]["principles"]
-            ):
-                principle_stats = st.session_state["workspace_data"]["progress_data"][
-                    "principles"
-                ][principle_key]
+            # Add progress metrics if available
+            if principle_key in progress_data:
+                principle_stats = progress_data[principle_key]
                 principle_copy.update(
                     {
                         "total_checks": principle_stats["principle_total"],
@@ -160,7 +221,7 @@ class ProcessCheck:
         """
         if nature_of_evidence:
             st.markdown(
-                '<div class="pc-evidence-tag">Nature of Evidence:</div>',
+                '<div class="pc-evidence-tag">Nature of Evidence</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
@@ -175,7 +236,7 @@ class ProcessCheck:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                '<div class="pc-evidence-tag">Evidence:</div>',
+                '<div class="pc-evidence-tag">Evidence</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
@@ -206,12 +267,12 @@ class ProcessCheck:
             # Get current value from session state if exists
             current_value = None
             if process_info["implementation"] is not None:
-                options = ["Yes", "No", "N/A"]
+                options = list(IMPLEMENTATION_CHOICES)
                 current_value = options.index(process_info["implementation"])
 
             is_implemented = st.radio(
                 f"Implementation Status for {process_id}",
-                options=["Yes", "No", "N/A"],
+                options=list(IMPLEMENTATION_CHOICES),
                 horizontal=True,
                 label_visibility="collapsed",
                 index=current_value,
@@ -251,6 +312,30 @@ class ProcessCheck:
                 process_id
             ]["elaboration"] = elaboration
 
+    def _render_map_badges_native(self, process_map_data: list) -> None:
+        """
+        Render colored badges for mapped governance framework items.
+
+        Args:
+            process_map_data: List containing map data with color keys and framework items.
+        """
+        if not process_map_data:
+            return
+
+        color_mapping = get_map_color_mapping()
+        badges_markdown = ""
+
+        for color in process_map_data:
+            if not color:
+                continue
+
+            framework_name = color_mapping.get(color, "")
+            badge_text = f"{framework_name}" if framework_name else color
+            badges_markdown += f":{color}-badge[{badge_text}] "
+
+        if badges_markdown:
+            st.markdown(badges_markdown)
+
     def _render_outcome_container(
         self, outcome_id: str, processes: dict, map_data: dict
     ) -> None:
@@ -268,7 +353,7 @@ class ProcessCheck:
 
             # Get the outcome from the first process in the group
             first_process = next(iter(processes.values()))
-            outcome = first_process["outcome_description"]
+            outcome = first_process["outcomes"]
 
             # Display outcome ID and header with reduced spacing
             st.markdown(
@@ -282,17 +367,16 @@ class ProcessCheck:
             )
 
             # Display each process
-            for i, process_id in enumerate(processes.keys()):
+            process_ids = list(processes.keys())
+            for i, process_id in enumerate(process_ids):
                 process_info = processes[process_id]
                 process_map_data = map_data.get(process_id, [])
                 self._render_process(
                     process_id, process_info, outcome_id, outcome, process_map_data
                 )
 
-                # Add horizontal line between processes
-                if (
-                    i < len(processes.keys()) - 1
-                ):  # Only add line if not the last process
+                # Add horizontal line between processes (not after the last one)
+                if i < len(process_ids) - 1:
                     st.markdown(
                         "<hr style='margin-top: 8px !important; margin-bottom: 8px !important;'>",
                         unsafe_allow_html=True,
@@ -311,12 +395,12 @@ class ProcessCheck:
 
         Args:
             process_id: The ID of the process to render.
-            process_info: Dictionary containing process information.
+            process_info: Dictionary containing process information including implementation status and elaboration.
             outcome_id: The ID of the parent outcome.
             outcome: The description of the parent outcome.
-            process_map_data: List containing map data for the process.
+            process_map_data: List containing mapping data for governance frameworks related to this process.
         """
-        process_description = process_info["process_to_achieve_outcomes"]
+        process_to_achieve_outcomes = process_info["process_to_achieve_outcomes"]
         nature_of_evidence = process_info["nature_of_evidence"]
         evidence = process_info["evidence"]
 
@@ -339,9 +423,9 @@ class ProcessCheck:
         left_col, right_col = st.columns([1, 2], gap="small")
 
         with left_col:
-            if process_description:
+            if process_to_achieve_outcomes:
                 st.markdown(
-                    f'<div class="pc-text">{process_description}</div>',
+                    f'<div class="pc-text">{process_to_achieve_outcomes.replace("\n", "<br><br>")}</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -362,12 +446,8 @@ class ProcessCheck:
     def display(self):
         """
         Display the main process check interface in the Streamlit app.
-
-        This method orchestrates the rendering of all UI components including instructions,
-        action buttons, progress tracking, and principle content.
         """
         self.initialize_process_checks_data()
-
         self.display_instructions()
         self.render_action_buttons()
 
@@ -383,11 +463,134 @@ class ProcessCheck:
         self.render_progress_bar()
         self.render_process_checks_pane()
 
+    def display_edit_form(self):
+        """
+        Display a form for editing app information.
+        """
+        # Get current values from session state
+        workspace_data = st.session_state["workspace_data"]
+        current_app_name = workspace_data.get("app_name", "")
+        current_app_description = workspace_data.get("app_description", "")
+
+        # Create a form for editing
+        with st.form("edit_app_info_form"):
+            # Create input fields pre-filled with current values
+            new_app_name = st.text_input(
+                "Application Name",
+                key="app_name",
+                value=current_app_name,
+                help="The name of the application will be reflected in the report generated after you complete the process checks and technical tests (optional)",  # noqa: E501
+                max_chars=50,
+            )
+
+            new_app_description = st.text_area(
+                "Application Description",
+                key="app_description",
+                value=current_app_description,
+                help="Briefly describe the application being assessed, including its purpose, key features, and any relevant context. This will help provide a clearer understanding of the application for your stakeholders reading the report",  # noqa: E501
+                max_chars=256,
+                height=150,
+            )
+
+            # Create save and cancel buttons with consistent ordering
+            col1, col2 = st.columns(2)
+            with col1:
+                save_button = st.form_submit_button(
+                    "Save Changes", type="primary", use_container_width=True
+                )
+            with col2:
+                cancel_button = st.form_submit_button(
+                    "Cancel", use_container_width=True
+                )
+
+        # Handle form actions outside the form block
+        if save_button:
+            if new_app_name and new_app_description:
+                # Sanitize inputs
+                sanitized_app_name = bleach.clean(new_app_name.strip(), strip=True)
+                sanitized_app_description = bleach.clean(
+                    new_app_description.strip(), strip=True
+                )
+
+                if sanitized_app_name and sanitized_app_description:
+                    # Update session state with new values
+                    workspace_data["app_name"] = sanitized_app_name
+                    workspace_data["app_description"] = sanitized_app_description
+
+                    # Exit edit mode and refresh UI
+                    st.session_state["edit_mode"] = False
+                    st.session_state["needs_refresh"] = True
+                    st.rerun()
+                else:
+                    st.error(
+                        "Please enter both an application name and description to save changes."
+                    )
+            else:
+                st.error(
+                    "Please enter both an application name and description to save changes."
+                )
+
+        if cancel_button:
+            # Exit edit mode without saving changes
+            st.session_state["edit_mode"] = False
+            st.rerun()
+
+    def display_import_form(self) -> None:
+        """
+        Display a dialog for importing Excel files.
+        """
+
+        @st.dialog("Import from Excel")
+        def import_dialog() -> None:
+            st.write("Please upload your Excel file containing process check data.")
+            st.warning(
+                """
+            Importing a new file will:
+            - Completely overwrite your current progress and responses
+            - Delete all existing implementation status selections
+            - Remove any elaboration text you have entered
+
+            This action cannot be undone. Make sure to export or backup your current data first if needed.
+            """,
+                icon="⚠️",
+            )
+
+            uploaded_file = st.file_uploader("Choose a file", type=["xlsx"])
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(
+                    "Import", use_container_width=True, disabled=uploaded_file is None
+                ):
+                    if uploaded_file is not None:
+                        # Merge implementation data from the uploaded file
+                        merged_data, error_msg, success = (
+                            self._merge_imported_implementation_data(uploaded_file)
+                        )
+
+                        if success:
+                            # Update principles data
+                            st.session_state["imported_excel_principles_data"] = (
+                                merged_data
+                            )
+                            st.session_state["workspace_data"]["process_checks"] = {}
+
+                            # Close import form and refresh
+                            st.session_state["show_import_form"] = False
+                            st.rerun()
+                        else:
+                            st.error(error_msg)
+            with col2:
+                if st.button("Cancel", use_container_width=True):
+                    st.session_state["show_import_form"] = False
+                    st.rerun()
+
+        # Call the dialog function to display it
+        import_dialog()
+
     def display_instructions(self) -> None:
         """
         Display instructions for completing the process checklist.
-
-        Shows an expandable section explaining the meaning of Yes, No, and Not Applicable options.
         """
         with st.expander("Instructions", expanded=True):
             st.markdown(
@@ -401,16 +604,26 @@ class ProcessCheck:
                 2.	No: If the process is not implemented, provide reasons to show that the decision is a deliberate and considered one
                 3.	Not Applicable: If the process does not apply to your application, you can provide reasons to show that the decision is a deliberate and considered one
 
-            - Once you have completed all 11 principles, you can click the “Next” button to proceed to the next section
-            """  # noqa: E501, W293
+            - Once you have completed all 11 principles, you can click the "Next" button to proceed to the next section
+            """  # noqa: E501
             )
+
+    def get_all_process_check_keys(self):
+        """
+        Get all possible keys from process checks across all principles.
+
+        Returns:
+            list: List of all unique keys found in process checks
+        """
+        keys = set()
+        for principle in self.principles_data.values():
+            for process in principle.get("process_checks", {}).values():
+                keys.update(process.keys())
+        return list(keys)
 
     def get_friendly_principle_name(self, principle_name: str) -> str:
         """
         Convert a principle name to a more user-friendly format.
-
-        Removes numeric prefixes, replaces HTML entities with their actual characters,
-        and formats the text for better readability.
 
         Args:
             principle_name: The original principle name with potential HTML entities.
@@ -421,13 +634,12 @@ class ProcessCheck:
         # Mapping for HTML entity replacement and text normalization
         principles_mapping = {
             "10) Human agency &amp; oversight": "10) Human agency & oversight",
-            "11) Inc Grwth,Soc&amp;Env wellbeing": "11) Inclusive growth, societal and environmental well-being",
+            "11) Inc Grwth,Soc&Env wellbeing": "11) Inclusive growth, societal and environmental well-being",
         }
 
         # Replace HTML entities and normalize text if found in mapping
-        for old_key, new_key in principles_mapping.items():
-            if old_key == principle_name:
-                principle_name = new_key
+        if principle_name in principles_mapping:
+            principle_name = principles_mapping[principle_name]
 
         # Clean and format the name
         name_str = str(principle_name).strip()
@@ -439,38 +651,23 @@ class ProcessCheck:
         """
         Calculate comprehensive statistics for process checks.
 
-        Computes total questions, answered questions, and per-principle stats
-        in a single pass through the data.
-
         Returns:
-            dict: Dictionary containing overall totals and per-principle statistics:
-                {
-                    "total_questions": int,
-                    "total_answered_questions": int,
-                    "principles": {
-                        "principle_key1": {
-                            "principle_total": int,
-                            "principle_answered": int
-                        },
-                        ...
-                    }
-                }
+            dict: Dictionary containing overall totals and per-principle statistics
         """
         stats = {"total_questions": 0, "total_answered_questions": 0, "principles": {}}
 
         # Initialize principle counters
-        for principle_key in self.principles_data.keys():
-            stats["principles"][principle_key] = {
-                "principle_total": 0,
-                "principle_answered": 0,
-            }
-
-            # Count total questions from principles data
+        for principle_key in self.principles_data:
             process_checks = self.principles_data[principle_key].get(
                 "process_checks", {}
             )
-            stats["principles"][principle_key]["principle_total"] = len(process_checks)
-            stats["total_questions"] += len(process_checks)
+            principle_total = len(process_checks)
+
+            stats["principles"][principle_key] = {
+                "principle_total": principle_total,
+                "principle_answered": 0,
+            }
+            stats["total_questions"] += principle_total
 
         # Skip counting answered if no workspace data
         if (
@@ -480,14 +677,12 @@ class ProcessCheck:
             return stats
 
         # Count answered questions from workspace data
-        for _, processes in st.session_state["workspace_data"][
-            "process_checks"
-        ].items():
-            for _, process_info in processes.items():
+        for processes in st.session_state["workspace_data"]["process_checks"].values():
+            for process_info in processes.values():
                 principle_key = process_info["principle_key"]
 
                 # Check if implementation has a valid answer
-                if process_info.get("implementation") in ["Yes", "No", "N/A"]:
+                if process_info.get("implementation") in IMPLEMENTATION_CHOICES:
                     if principle_key in stats["principles"]:
                         stats["principles"][principle_key]["principle_answered"] += 1
                         stats["total_answered_questions"] += 1
@@ -497,10 +692,6 @@ class ProcessCheck:
     def initialize_process_checks_data(self) -> None:
         """
         Initialize the process checks data in session state.
-
-        Populates the session state with all process check data from principles_data,
-        storing it in a structured format for easier access during rendering.
-        Merges with existing workspace data if available.
         """
         if "process_checks" not in st.session_state.get("workspace_data", {}):
             process_checks_data = {}
@@ -536,132 +727,84 @@ class ProcessCheck:
     def render_action_buttons(self) -> None:
         """
         Render the action buttons for process checks using a custom component.
-
-        Displays workspace information, import and export buttons using the actions component.
-        Handles actions returned from the component.
         """
         # Get data
         workspace_id = st.session_state.get("workspace_id", "")
-        app_name = st.session_state["workspace_data"].get("app_name", "")
-        app_description = st.session_state["workspace_data"].get("app_description", "")
+        workspace_data = st.session_state["workspace_data"]
+        app_name = workspace_data.get("app_name", "")
+        app_description = workspace_data.get("app_description", "")
 
         # Initialize session state variables if they don't exist
         if "edit_mode" not in st.session_state:
             st.session_state["edit_mode"] = False
+        if "show_import_form" not in st.session_state:
+            st.session_state["show_import_form"] = False
 
         # Create the component and get any action returned (only if not in edit mode)
-        if not st.session_state["edit_mode"]:
-            action = create_actions_component(
-                workspace_id=workspace_id,
-                app_name=app_name,
-                app_description=app_description,
-            )
+        if st.session_state["edit_mode"]:
+            # Display the edit form instead of the component
+            self.display_edit_form()
+        else:
+            if st.session_state["show_import_form"]:
+                # Display the import form
+                self.display_import_form()
 
-            # Handle actions returned from the component
-            if action:
+            # Create two columns
+            left_col, right_col = st.columns([3, 1])
+
+            with left_col:
+                action = create_actions_component(
+                    workspace_id=workspace_id,
+                    app_name=app_name,
+                    app_description=app_description,
+                )
+                # Handle actions returned from the component
                 if action == "edit":
                     # Enter edit mode
                     st.session_state["edit_mode"] = True
                     st.rerun()
-                elif action == "import":
-                    # Handle import button click
-                    st.toast("Import from Excel functionality to be implemented")
-                elif action == "export":
-                    # Handle export button click
-                    st.toast("Export to Excel functionality to be implemented")
-        else:
-            # Display the edit form instead of the component
-            self.display_edit_form()
 
-    def display_edit_form(self):
-        """
-        Display a form for editing app information.
+            with right_col:
+                # Create a container with custom CSS to make buttons the same width
+                with st.container():
+                    # Auto-save enabled indicator
+                    st.markdown(
+                        """
+                        <div style="color: #2e7d32; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                            <span style="margin-right: 5px;">↻</span> Auto-save enabled
+                        </div>
+                        """,  # noqa: E501
+                        unsafe_allow_html=True,
+                    )
 
-        This replaces the action component with a form when in edit mode.
-        """
-        # Get current values from session state
-        current_app_name = st.session_state["workspace_data"].get("app_name", "")
-        current_app_description = st.session_state["workspace_data"].get(
-            "app_description", ""
-        )
+                    # Import button with fixed label length
+                    if st.button(
+                        "Import from Excel",
+                        help="If you have completed the process checks in the offline Excel file, you can import the Excel file into this toolkit to generate a report \n Importing the file will override your current progress and responses. \n As this action is irreversible, we recommend to export or back-up your existing data before proceeding.",  # noqa: E501
+                        icon=":material/file_upload:",
+                        use_container_width=True,
+                    ):
+                        st.session_state["show_import_form"] = True
+                        st.rerun()
 
-        # Create a form for editing
-        with st.form("edit_app_info_form"):
-            # Create input fields pre-filled with current values
-            new_app_name = st.text_input(
-                "Application Name",
-                key="app_name",
-                value=current_app_name,
-                help="The name of the application will be reflected in the report generated after you complete the process checks and technical tests (optional)",  # noqa: E501
-                max_chars=50,
-            )
-
-            new_app_description = st.text_area(
-                "Application Description",
-                key="app_description",
-                value=current_app_description,
-                help="Briefly describe the application being assessed, including its purpose, key features, and any relevant context. This will help provide a clearer understanding of the application for your stakeholders reading the report",  # noqa: E501
-                max_chars=256,
-                height=150,
-            )
-
-            # Create save and cancel buttons with consistent ordering
-            col1, col2 = st.columns(2)
-            with col1:
-                save_button = st.form_submit_button(
-                    "Save Changes", type="primary", use_container_width=True
-                )
-            with col2:
-                cancel_button = st.form_submit_button(
-                    "Cancel", use_container_width=True
-                )
-
-        # Handle form actions outside the form block
-        if save_button and new_app_name and new_app_description:
-
-            # Sanitize app name using bleach
-            stripped_app_name = new_app_name.strip()
-            sanitized_app_name = bleach.clean(stripped_app_name, strip=True)
-
-            # Sanitize app description using bleach
-            stripped_app_description = new_app_description.strip()
-            sanitized_app_description = bleach.clean(
-                stripped_app_description, strip=True
-            )
-
-            if sanitized_app_name and sanitized_app_description:
-                # Update session state with new values
-                st.session_state["workspace_data"]["app_name"] = sanitized_app_name
-                st.session_state["workspace_data"][
-                    "app_description"
-                ] = sanitized_app_description
-
-                # Exit edit mode
-                st.session_state["edit_mode"] = False
-
-                # Set flag to indicate we need to refresh the UI
-                st.session_state["needs_refresh"] = True
-
-                # Rerun to update the UI
-                st.rerun()
-            else:
-                st.error(
-                    "Please enter both an application name and description to save changes."
-                )
-                return
-
-        if cancel_button:
-            # Exit edit mode without saving changes
-            st.session_state["edit_mode"] = False
-            st.rerun()
+                    # Export button with fixed label length
+                    st.download_button(
+                        label="Export as Excel",
+                        help="Export the current process checks into an Excel file and work on it offline.",
+                        icon=":material/file_download:",
+                        data=export_excel(
+                            REFERENCE_EXCEL_FILE_PATH,
+                            st.session_state["workspace_data"]["process_checks"],
+                        ),
+                        file_name=f"process_checks_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.xlsx",
+                        use_container_width=True,
+                    )
 
     def render_process_checks(
         self, principle_name: str, principle_description: str, principle_key: str
     ) -> None:
         """
         Render the process checks for a principle.
-
-        Reads process check data from session state and displays them in a structured format.
 
         Args:
             principle_name: The user-friendly name of the principle.
@@ -688,12 +831,10 @@ class ProcessCheck:
         map_data = load_map_data()
 
         # Display each outcome group
-        for outcome_id in principle_checks.keys():
-            if outcome_id:  # Only display if outcome is non-empty
-                processes = principle_checks[outcome_id]
-                if not processes:
-                    continue
-
+        for outcome_id, processes in principle_checks.items():
+            if (
+                outcome_id and processes
+            ):  # Only display if outcome is non-empty and has processes
                 self._render_outcome_container(outcome_id, processes, map_data)
 
     def render_process_checks_pane(self) -> None:
@@ -709,14 +850,12 @@ class ProcessCheck:
         if "cards_component" not in st.session_state:
             st.session_state["cards_component"] = 0
 
-        # Create a list of user-friendly principle names
+        # Create a list of user-friendly principle names and prepare progress data
+        principles_data_with_progress = self._prepare_principles_data_with_progress()
         friendly_principles_names = [
             self.get_friendly_principle_name(name)
             for name in self.principles_data.keys()
         ]
-
-        # Add progress data to principles_data for the component
-        principles_data_with_progress = self._prepare_principles_data_with_progress()
 
         left_col, right_col = st.columns([1, 3], gap="small")
         with left_col:
@@ -733,8 +872,8 @@ class ProcessCheck:
             # Get the current principle data
             current_index = st.session_state["cards_component"]
             if 0 <= current_index < len(friendly_principles_names):
-                principle_name = friendly_principles_names[current_index]
                 principle_key = list(self.principles_data.keys())[current_index]
+                principle_name = friendly_principles_names[current_index]
                 principle_description = self.principles_data[principle_key].get(
                     "principle_description", ""
                 )
@@ -744,7 +883,7 @@ class ProcessCheck:
                     principle_name, principle_description, principle_key
                 )
 
-        # Save workspace data and save changes
+        # Save workspace data
         save_workspace(
             st.session_state["workspace_id"], st.session_state["workspace_data"]
         )
@@ -773,42 +912,10 @@ class ProcessCheck:
         """
         return sorted(versions, key=lambda v: [int(part) for part in str(v).split(".")])
 
-    def _render_map_badges_native(self, process_map_data: list) -> None:
-        """
-        Render colored badges for mapped governance framework items using Streamlit's markdown syntax.
-
-        This method creates colored badges for each mapped item in the process map data.
-        Each badge displays the item reference and its corresponding governance framework name.
-
-        Args:
-            process_map_data: List containing map data with color keys (blue, purple)
-                and lists of framework item references.
-        """
-        if not process_map_data:
-            return
-
-        color_mapping = get_map_color_mapping()
-        badges_markdown = ""
-
-        for color in process_map_data:
-            if not color:
-                continue
-
-            framework_name = color_mapping.get(color, "")
-
-            badge_text = f"{framework_name}" if framework_name else color
-            badges_markdown += f":{color}-badge[{badge_text}] "
-
-        if badges_markdown:
-            st.markdown(badges_markdown)
-
 
 def click_back_button():
     """
     Decrement the 'section' in the session state to navigate to the previous section.
-
-    Returns:
-        None
     """
     st.session_state["section"] -= 1
 
@@ -816,27 +923,27 @@ def click_back_button():
 def click_next_button():
     """
     Increment the 'section' in the session state to navigate to the next section.
-
-    Returns:
-        None
     """
     st.session_state["section"] += 1
 
 
 def click_start_over_button() -> None:
     """
-    Reset the process checks by clearing the session state and redirecting to the welcome page.
+    Return to the home page by clearing the session state.
 
-    Displays a confirmation dialog before resetting to prevent accidental data loss.
+    Displays a confirmation dialog before returning to the home page.
+    Progress is automatically saved, so no data will be lost.
 
     Returns:
         None
     """
 
     # Using st.dialog as a function decorator
-    @st.dialog("Confirm Reset")
+    @st.dialog("Return to Home Page")
     def confirm_reset_dialog() -> None:
-        st.write("Are you sure you want to start over? All your progress will be lost.")
+        st.write(
+            "Do you want to return to Home Page? Don't worry, your progress has been saved."
+        )
         col1, col2 = st.columns(2)
 
         with col1:
@@ -859,9 +966,6 @@ def display_navigation_buttons() -> None:
     Shows Back, Start Over, and Next buttons as appropriate based on the current section.
     Only displays navigation controls when the user has progressed beyond the triage section.
     The Next button is disabled if not all questions are answered.
-
-    Returns:
-        None
     """
     if st.session_state["section"] >= 1:
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
@@ -872,7 +976,7 @@ def display_navigation_buttons() -> None:
     with col1:
         if st.session_state["section"] >= 1:
             st.button(
-                "↺ Start Over",
+                ":material/home: Home",
                 on_click=click_start_over_button,
                 use_container_width=True,
             )
@@ -881,17 +985,13 @@ def display_navigation_buttons() -> None:
             st.button("← Back", on_click=click_back_button, use_container_width=True)
     with col3:
         # Display the Next button for sections 1-4
-        if st.session_state["section"] < 5 and st.session_state["section"] >= 1:
+        if 1 <= st.session_state["section"] < 5:
             # Get progress data from session state
             progress_data = st.session_state["workspace_data"].get("progress_data", {})
             total_questions = progress_data.get("total_questions", 0)
             total_answered = progress_data.get("total_answered_questions", 0)
+
             # Disable Next if not all questions are answered
-
-            # TODO: Remove short circuit
-            # total_questions = 104
-            # total_answered = 104
-
             st.button(
                 "Next →",
                 on_click=click_next_button,
@@ -913,12 +1013,6 @@ def display_process_check() -> None:
     1. Ensures a workspace exists or guides the user to create one
     2. Initializes the ProcessCheck component
     3. Displays the interface with all necessary components
-
-    The function handles the conditional display of either the workspace
-    creation dialog or the process check interface based on session state.
-
-    Returns:
-        None
     """
     # Initialize and display the process checks interface
     process_check = ProcessCheck()
