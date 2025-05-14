@@ -253,13 +253,17 @@ def main():
         # Initialize a new workspace
         st.session_state["section"] = 0
 
-    # Start the HTTP server in a new thread
-    # This thread is used to retrieve and preview the PDF because HTML cannot preview the PDF if the file is too large
-    server_thread = threading.Thread(target=start_http_server)
-    server_thread.daemon = (
-        True  # This allows the program to exit even if the thread is running
-    )
-    server_thread.start()
+    # Check if the server has already been started
+    if "server_started" not in st.session_state:
+        # Start the HTTP server in a new thread
+        server_thread = threading.Thread(target=start_http_server)
+        server_thread.daemon = (
+            True  # This allows the program to exit even if the thread is running
+        )
+        server_thread.start()
+
+        # Set the flag to indicate the server has been started
+        st.session_state["server_started"] = True
 
     # Set the page layout and width
     set_custom_width_layout()

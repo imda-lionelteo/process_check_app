@@ -787,12 +787,12 @@ class ProcessCheck:
                         st.session_state["show_import_form"] = True
                         st.rerun()
 
-                    # Export button with fixed label length
+                    # Export button with cached data
                     st.download_button(
                         label="Export as Excel",
                         help="Export the current process checks into an Excel file and work on it offline.",
                         icon=":material/file_download:",
-                        data=export_excel(
+                        data=get_export_data(
                             REFERENCE_EXCEL_FILE_PATH,
                             st.session_state["workspace_data"]["process_checks"],
                         ),
@@ -1020,3 +1020,22 @@ def display_process_check() -> None:
 
     # Display the navigation buttons
     display_navigation_buttons()
+
+
+@st.cache_data
+def get_export_data(reference_file_path, process_checks_data):
+    """
+    Generate and cache Excel export data from process checks.
+
+    This function uses Streamlit's caching decorator to avoid regenerating the Excel file
+    unless the inputs change. It takes a reference Excel template and process check data
+    and returns the bytes of the generated Excel file.
+
+    Args:
+        reference_file_path (str): Path to the Excel template file used as reference
+        process_checks_data (dict): Dictionary containing process check responses and data
+
+    Returns:
+        bytes: The generated Excel file content as bytes
+    """
+    return export_excel(reference_file_path, process_checks_data)
