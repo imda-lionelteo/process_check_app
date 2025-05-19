@@ -12,7 +12,7 @@ from backend.workspace import (
 
 # File paths and URLs for resources
 GETTING_STARTED_DIAG_PATH = "assets/getting_started_diag.png"
-TESTING_FRAMEWORK_FILE_URL_EXCEL = "https://www.cpf.gov.sg/content/dam/web/member/faq/general-information---useful-tips/documents/Guide_to_view_and_save_CPF_statements.xlsx"  # noqa: E501
+TESTING_FRAMEWORK_FILE_URL_EXCEL = "https://go.gov.sg/aivtf-excel"
 
 
 def click_back_button() -> None:

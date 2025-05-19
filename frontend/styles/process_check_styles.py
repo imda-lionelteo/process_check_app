@@ -59,7 +59,6 @@ def get_process_check_styles() -> str:
     /* Typography */
     .pc-outcome-title {
         font-weight: 600;
-        font-size: 1rem;
         color: #1f2937;
         margin-bottom: 1rem;
         padding: 0.5rem;
@@ -93,12 +92,6 @@ def get_process_check_styles() -> str:
         font-weight: 600;
         color: #4b5563;
         margin-bottom: 8px;
-    }
-    
-    .pc-text {
-        font-size: 0.9rem;
-        color: #374151;
-        line-height: 1.4;
     }
     
     /* Form elements */
@@ -161,11 +154,6 @@ def get_process_check_density_styles() -> str:
         margin-bottom: 0.5rem !important;
         padding: 0.25rem !important;
         padding-top: 0 !important;
-    }
-    
-    .pc-text {
-        margin-bottom: 0.25rem !important;
-        line-height: 1.2 !important;
     }
     
     .pc-evidence-tag {

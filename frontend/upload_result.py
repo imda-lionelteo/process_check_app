@@ -7,7 +7,8 @@ import streamlit as st
 from backend.report_validation import validate_json
 from backend.workspace import initialize, save_workspace
 
-SAMPLE_REPORT_PATH = "assets/sample_report.json"
+GA_SAMPLE_REPORT_PATH = "assets/ms_ga_result_template.json"
+v06_SAMPLE_REPORT_PATH = "assets/ms_v0.6_result_template.json"
 
 
 def click_back_button() -> None:
@@ -157,17 +158,16 @@ def apply_custom_styles():
             font-family: 'Inter', sans-serif;
             font-size: 1.2rem;
             text-align: center;
-            color: #4b5563; /* Gray */
+            color: #4b5563;
             margin-bottom: 1.5rem;
             font-weight: 500;
             letter-spacing: -0.2px;
         }
-        /* Divider styling */
         .custom-divider {
             display: flex;
             align-items: center;
             text-align: center;
-            color: #6b7280; /* Gray */
+            color: #6b7280;
             font-size: 1.1rem;
             margin: 3rem 0;
             font-family: 'Inter', sans-serif;
@@ -177,19 +177,18 @@ def apply_custom_styles():
         .custom-divider::after {
             content: '';
             flex: 1;
-            border-bottom: 2px solid #e5e7eb; /* Light gray */
+            border-bottom: 2px solid #e5e7eb;
         }
         .custom-divider span {
             margin: 0 1rem;
             font-weight: 500;
         }
-        /* JSON preview styling */
         .json-preview {
             max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #e5e7eb; /* Light gray */
+            border: 1px solid #e5e7eb;
             padding: 10px;
-            background-color: #f9fafb; /* Very light gray */
+            background-color: #f9fafb;
             white-space: pre-wrap;
             font-family: 'Courier New', monospace;
         }
@@ -262,37 +261,36 @@ def upload_result():
     # Create a temporary directory
     temp_dir = tempfile.mkdtemp()
 
+    # --- Fix: Use a session key to force file_uploader to clear when file is removed ---
+    if "file_uploader_key" not in st.session_state:
+        st.session_state["file_uploader_key"] = 0
+
     # File uploader for JSON files with optional indication
     uploaded_file = st.file_uploader(
-        # label="Upload your JSON file",
         type=["json"],
         label=(
             "If you wish to include results from previous technical tests "
             "conducted using Project Moonshot in this report, you can upload "
             "the JSON file (1 file only) below:"
         ),
-        accept_multiple_files=False,  # Ensure only one file can be uploaded
+        accept_multiple_files=False,
+        key=st.session_state["file_uploader_key"],
     )
 
-    # Display the previously uploaded file only once when the page is loaded
-    if "file_path" in st.session_state["workspace_data"]["upload_results"]:
-        previous_file_path = st.session_state["workspace_data"]["upload_results"][
-            "file_path"
-        ]
-        # Check if the file still exists
-        if os.path.exists(previous_file_path):
-            file_name = os.path.basename(previous_file_path)
-            if "file_displayed" not in st.session_state:
-                st.info(
-                    f"You previously uploaded {file_name}. You can use the 'Browse file' button to replace your current file."  # noqa: E501
-                )
-                display_json_content(previous_file_path)
-                st.session_state["file_displayed"] = True
-        else:
-            # Remove the file path if the file does not exist
+    # If a new file is uploaded, process and display only the new file
+    if uploaded_file is not None:
+        # Remove previous file if exists
+        if "file_path" in st.session_state["workspace_data"]["upload_results"]:
+            prev_path = st.session_state["workspace_data"]["upload_results"][
+                "file_path"
+            ]
+            if os.path.exists(prev_path):
+                try:
+                    os.remove(prev_path)
+                except Exception:
+                    pass
             del st.session_state["workspace_data"]["upload_results"]["file_path"]
 
-    if uploaded_file is not None:
         # Save the uploaded file to the temporary directory
         file_path = os.path.join(temp_dir, uploaded_file.name)
         with open(file_path, "wb") as f:
@@ -300,34 +298,83 @@ def upload_result():
 
         # Read the JSON content
         with open(file_path, "r") as f:
-            data = json.load(f)
-            # Validate the JSON schema using the imported function
-            if validate_json(data):
-                st.success("File uploaded successfully")
-                # Convert JSON to a formatted string
-                json_str = json.dumps(data, indent=4)
-                # Display the JSON content in a scrollable div
-                st.markdown(
-                    f'<div class="json-preview">{json_str}</div>',
-                    unsafe_allow_html=True,
-                )
-
-                # Update the session state with the new file path
-                st.session_state["workspace_data"]["upload_results"][
-                    "file_path"
-                ] = file_path
-                # Save the session state to the workspace
-                workspace_id = st.session_state["workspace_id"]
-                save_workspace(workspace_id, st.session_state["workspace_data"])
-
-                # Clear the previous file display flag
-                st.session_state["file_displayed"] = False
-            else:
+            try:
+                data = json.load(f)
+                # Check if the JSON data is empty
+                if not data:
+                    st.error(
+                        "The uploaded JSON file is empty. Please upload a valid Project Moonshot JSON file."
+                    )
+                    os.remove(file_path)
+                # Validate the JSON schema using the imported function
+                elif validate_json(data):
+                    st.success("File uploaded successfully")
+                    # Convert JSON to a formatted string
+                    json_str = json.dumps(data, indent=4)
+                    # Display the JSON content in a scrollable div
+                    st.markdown(
+                        f'<div class="json-preview">{json_str}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.session_state["workspace_data"]["upload_results"][
+                        "file_path"
+                    ] = file_path
+                    workspace_id = st.session_state["workspace_id"]
+                    save_workspace(workspace_id, st.session_state["workspace_data"])
+                else:
+                    st.error(
+                        "The file you uploaded isn’t in the correct format. Please upload a valid Project Moonshot JSON file."  # noqa: E501
+                    )
+                    # Optionally, delete the file if the schema is invalid
+                    os.remove(file_path)
+            except json.JSONDecodeError:
                 st.error(
-                    "The file you uploaded isn’t in the correct format. Please upload a valid Project Moonshot JSON file."  # noqa: E501
+                    "The uploaded file is not a valid JSON. Please upload a valid Project Moonshot JSON file."
                 )
-                # Optionally, delete the file if the schema is invalid
                 os.remove(file_path)
+    # If no new file is uploaded, show the previous file if it exists
+    elif "file_path" in st.session_state["workspace_data"]["upload_results"]:
+        previous_file_path = st.session_state["workspace_data"]["upload_results"][
+            "file_path"
+        ]
+        if os.path.exists(previous_file_path):
+            file_name = os.path.basename(previous_file_path)
+            st.info(
+                f"You previously uploaded {file_name}. You can use the 'Browse file' button to replace your current file."  # noqa: E501
+            )
+            display_json_content(previous_file_path)
+        else:
+            del st.session_state["workspace_data"]["upload_results"]["file_path"]
+
+    # Add an option to remove the uploaded file
+    if "file_path" in st.session_state["workspace_data"]["upload_results"]:
+        remove_button_style = """
+        <style>
+        .remove_file_button {
+            background-color: red !important;
+            color: white !important;
+            width: 100%;
+        }
+        </style>
+        """
+        st.markdown(remove_button_style, unsafe_allow_html=True)
+        if st.button(
+            "Remove Uploaded File",
+            key="remove_file_button",
+            use_container_width=True,
+            type="primary",
+        ):
+            file_path = st.session_state["workspace_data"]["upload_results"][
+                "file_path"
+            ]
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            del st.session_state["workspace_data"]["upload_results"]["file_path"]
+            st.success("Uploaded file has been removed.")
+            # Remove the remove button and display preview button
+            # Increment the file_uploader_key to force Streamlit to clear the file_uploader
+            st.session_state["file_uploader_key"] += 1
+            st.rerun()
 
     # Section for users without a test result
     st.markdown("---")
@@ -359,10 +406,17 @@ def upload_result():
         href = f'<a href="data:application/json;base64,{b64}" download="{filename}">{link_text}</a>'
         return href
 
-    with open(SAMPLE_REPORT_PATH, "r") as sample_file:
+    with open(GA_SAMPLE_REPORT_PATH, "r") as sample_file:
         sample_data = sample_file.read()
-        download_link_1 = get_download_link(sample_data, "sample_report.json", "here")
-        download_link_2 = get_download_link(sample_data, "sample_report.json", "here")
+        download_link_1 = get_download_link(
+            sample_data, "ms_ga_result_template.json", "here"
+        )
+
+    with open(v06_SAMPLE_REPORT_PATH, "r") as sample_file:
+        sample_data = sample_file.read()
+        download_link_2 = get_download_link(
+            sample_data, "ms_v0.6_result_template.json", "here"
+        )
 
     st.markdown(
         f"""

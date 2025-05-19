@@ -15,7 +15,7 @@ from frontend.styles.process_check_styles import (
 )
 
 # Global variable for the reference Excel file path
-REFERENCE_EXCEL_FILE_PATH = "assets/AI_Verify_Testing_Framework_April_2025.xlsx"
+REFERENCE_EXCEL_FILE_PATH = "assets/AI_Verify_Checklist_PP.xlsx"
 
 # Implementation choices for process checks
 IMPLEMENTATION_CHOICES = ("Yes", "No", "N/A")
@@ -225,7 +225,7 @@ class ProcessCheck:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f'<div class="pc-text">{nature_of_evidence}</div>',
+                f"{nature_of_evidence}",
                 unsafe_allow_html=True,
             )
 
@@ -240,7 +240,7 @@ class ProcessCheck:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f'<div class="pc-text">{evidence}</div>',
+                f"{evidence}",
                 unsafe_allow_html=True,
             )
 
@@ -425,7 +425,7 @@ class ProcessCheck:
         with left_col:
             if process_to_achieve_outcomes:
                 st.markdown(
-                    f'<div class="pc-text">{process_to_achieve_outcomes.replace("\n", "<br><br>")}</div>',
+                    f"{process_to_achieve_outcomes}",
                     unsafe_allow_html=True,
                 )
 
@@ -604,6 +604,8 @@ class ProcessCheck:
                 2.	No: If the process is not implemented, provide reasons to show that the decision is a deliberate and considered one
                 3.	Not Applicable: If the process does not apply to your application, you can provide reasons to show that the decision is a deliberate and considered one
 
+            - Your progress on the process checks will be saved automatically
+
             - Once you have completed all 11 principles, you can click the "Next" button to proceed to the next section
             """  # noqa: E501
             )
@@ -633,8 +635,8 @@ class ProcessCheck:
         """
         # Mapping for HTML entity replacement and text normalization
         principles_mapping = {
-            "10) Human agency &amp; oversight": "10) Human agency & oversight",
-            "11) Inc Grwth,Soc&Env wellbeing": "11) Inclusive growth, societal and environmental well-being",
+            "10. Human agency": "10. Human agency & oversight",
+            "11. Inclusive growth": "11. Inclusive growth, societal and environmental well-being",
         }
 
         # Replace HTML entities and normalize text if found in mapping
@@ -643,7 +645,7 @@ class ProcessCheck:
 
         # Clean and format the name
         name_str = str(principle_name).strip()
-        name_without_prefix = re.sub(r"^\d+\)\s*", "", name_str)
+        name_without_prefix = re.sub(r"^\d+\.\s*", "", name_str)
         friendly_name = name_without_prefix.replace("_", " ").title()
         return friendly_name.strip()
 

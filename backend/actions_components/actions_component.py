@@ -134,11 +134,11 @@ def create_actions_component(
             <div class="workspace-info-container">
                 <div class="workspace-info-left" style="width: 400px;">
                     <div style="width: 100%; overflow: hidden;">
-                        <div class="workspace-info-field">App Name</div>
+                        <div class="workspace-info-field">Application Name</div>
                         <span class="workspace-info-value" id="app-name" style="display: block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"></span>
                     </div>
                     <div style="width: 100%; overflow: hidden;">
-                        <div class="workspace-info-field">App Description</div>
+                        <div class="workspace-info-field">Application Description</div>
                         <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
                     </div>
                     <div style="margin-top: 16px; width: 100%; overflow: hidden;">
@@ -398,11 +398,11 @@ def create_actions_component_no_excel(
                         <span class="workspace-info-value" id="company-name"></span>
                     </div>
                     <div>
-                        <div class="workspace-info-field">App Name</div>
+                        <div class="workspace-info-field">Application Name</div>
                         <span class="workspace-info-value" id="app-name"></span>
                     </div>
                     <div>
-                        <div class="workspace-info-field">App Description</div>
+                        <div class="workspace-info-field">Application Description</div>
                         <span class="workspace-info-description" id="app-description"></span>
                     </div>
                     <div style="margin-top: 16px;">

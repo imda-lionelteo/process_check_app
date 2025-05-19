@@ -10,7 +10,7 @@ this principle.
 NOT_ALL_YES_DESC = """
 Company indicated that it did not implement all the
 processes under this principle, or the processes were not
-applicable to the AI system tested.
+applicable to the AI system tested:
 """
 
 
@@ -56,7 +56,7 @@ def transparency_principle(data):
     all_yes = True
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "1) Transparency":
+            if details["principle_key"].strip() == "1. Transparency":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -129,7 +129,7 @@ def explainability_principle(data):
     all_yes = True
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "2) Explainability":
+            if details["principle_key"].strip() == "2. Explainability":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -224,7 +224,7 @@ def reproducibility_principle(data):
     # Check the implementation status for the reproducibility principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "3) Reproducibility":
+            if details["principle_key"].strip() == "3. Reproducibility":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -316,7 +316,7 @@ def safety_principle(data):
     # Check the implementation status for the safety principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "4) Safety":
+            if details["principle_key"].strip() == "4. Safety":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -389,7 +389,7 @@ def security_principle(data):
     # Check the implementation status for the security principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "5) Security":
+            if details["principle_key"].strip() == "5. Security":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -460,7 +460,7 @@ def robustness_principle(data):
     # Check the implementation status for the robustness principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "6) Robustness":
+            if details["principle_key"].strip() == "6. Robustness":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -528,7 +528,7 @@ def fairness_principle(data):
     # Check the implementation status for the fairness principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "7) Fairness":
+            if details["principle_key"].strip() == "7. Fairness":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -599,7 +599,7 @@ def data_governance_principle(data):
     # Check the implementation status for the data governance principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "8) Data Governance":
+            if details["principle_key"].strip() == "8. Data Governance":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -672,7 +672,7 @@ def accountability_principle(data):
     # Check the implementation status for the accountability principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "9) Accountability":
+            if details["principle_key"].strip() == "9. Accountability":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -700,8 +700,8 @@ def accountability_principle(data):
     return data
 
 
-def human_agency_oversight_principle(data):
-    human_agency_oversight_all_yes_wim = [
+def human_agency_principle(data):
+    human_agency_all_yes_wim = [
         """
     Company has put in place appropriate oversight and
     control measures so that human can intervene should AI
@@ -711,7 +711,7 @@ def human_agency_oversight_principle(data):
     system.
     """
     ]
-    human_agency_oversight_not_all_yes_wim = [
+    human_agency_not_all_yes_wim = [
         """
     Company may not have put in place adequate oversight
     and control measures for human to intervene should AI
@@ -729,7 +729,7 @@ def human_agency_oversight_principle(data):
     or individuals affected by the AI system.
     """
     ]
-    human_agency_oversight_recommendation = """
+    human_agency_recommendation = """
     Company should review the current oversight and control
     that spans development and deployment stages to ensure
     that human is able to improve the operation of AI system
@@ -742,7 +742,7 @@ def human_agency_oversight_principle(data):
     # Check the implementation status for the human agency & oversight principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "10) Human agency & oversight":
+            if details["principle_key"].strip() == "10. Human agency":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -754,15 +754,13 @@ def human_agency_oversight_principle(data):
 
     # Update the JSON with the appropriate description or WIM
     if all_yes:
-        data["human_agency_oversight_description"] = ALL_YES_DESC
-        data["human_agency_oversight_wim"] = human_agency_oversight_all_yes_wim
-        data["human_agency_oversight_recommendation"] = ""
+        data["human_agency_description"] = ALL_YES_DESC
+        data["human_agency_wim"] = human_agency_all_yes_wim
+        data["human_agency_recommendation"] = ""
     else:
-        data["human_agency_oversight_description"] = NOT_ALL_YES_DESC
-        data["human_agency_oversight_wim"] = human_agency_oversight_not_all_yes_wim
-        data["human_agency_oversight_recommendation"] = (
-            human_agency_oversight_recommendation
-        )
+        data["human_agency_description"] = NOT_ALL_YES_DESC
+        data["human_agency_wim"] = human_agency_not_all_yes_wim
+        data["human_agency_recommendation"] = human_agency_recommendation
 
     # Append the outcome descriptions for "No" or "N/A"
     data["process_to_achieve_outcomes"] = process_to_achieve_outcomes
@@ -809,7 +807,7 @@ def inc_growth_principle(data):
     # Check the implementation status for the inclusive growth, social & environmental wellbeing principle
     for principle_id, processes in data["process_checks"].items():
         for process_id, details in processes.items():
-            if details["principle_key"].strip() == "11) Inc Grwth,Soc&Env wellbeing":
+            if details["principle_key"].strip() == "11. Inclusive growth":
                 if details["implementation"] != "Yes":
                     all_yes = False
                     process_to_achieve_outcomes.append(
@@ -827,9 +825,7 @@ def inc_growth_principle(data):
     else:
         data["inc_growth_description"] = NOT_ALL_YES_DESC
         data["inc_growth_wim"] = inc_growth_soc_env_wellbeing_not_all_yes_wim
-        data["inc_growth_soc_recommendation"] = (
-            inc_growth_soc_env_wellbeing_recommendation
-        )
+        data["inc_growth_recommendation"] = inc_growth_soc_env_wellbeing_recommendation
 
     # Append the outcome descriptions for "No" or "N/A"
     data["process_to_achieve_outcomes"] = process_to_achieve_outcomes
@@ -880,13 +876,13 @@ def process_principle(data, principle_name, principle_number):
     # Convert the defaultdict to a regular dictionary for JSON serialization
     implementation_counts = dict(implementation_counts)
 
-    # Check if the principle name is "human agency oversight" and adjust the principle key accordingly
-    if principle_name == "human agency oversight":
-        principle_key = f"{principle_number}) Human agency & oversight"
+    # Check if the principle name is "human agency" and adjust the principle key accordingly
+    if principle_name == "human agency":
+        principle_key = f"{principle_number}. Human agency"
     elif principle_name == "inc growth":
-        principle_key = f"{principle_number}) Inc Grwth,Soc&Env wellbeing"
+        principle_key = f"{principle_number}. Inclusive growth"
     else:
-        principle_key = f"{principle_number}) {' '.join(word.capitalize() for word in principle_name.split())}"
+        principle_key = f"{principle_number}. {' '.join(word.capitalize() for word in principle_name.split())}"
 
     yes_count = implementation_counts.get(principle_key, {}).get("Yes", 0)
     no_count = implementation_counts.get(principle_key, {}).get("No", 0)

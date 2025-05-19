@@ -36,9 +36,6 @@ def initialize_session_state():
         initialize(workspace_id="default")
 
     workspace_data = load_workspace(st.session_state["workspace_id"])
-    if "application_info" not in workspace_data:
-        workspace_data["application_info"] = {"app_name": "", "app_description": ""}
-
     if "workspace_data" not in st.session_state:
         st.session_state["workspace_data"] = workspace_data
 

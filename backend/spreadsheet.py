@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 SELECTED_AI_TYPE: str = "Generative AI"
 
 # Sheets to ignore when processing Excel data
-IGNORED_SHEETS = ["Instructions"]
+IGNORED_SHEETS = ["Get Started", "Glossary", "Track your Progress"]
 
 # Column indices for merged cell values - these are columns that may contain merged cells
 # across multiple rows in the Excel spreadsheet
@@ -55,7 +55,7 @@ def extract_principle_description(df: DataFrame) -> str:
     Returns:
         The principle description as a string
     """
-    return str(df.iloc[0, 0])
+    return str(df.iloc[1, 0])
 
 
 def is_valid_process_id(process_id: Any) -> bool:
@@ -166,7 +166,7 @@ def process_excel_principles_data(excel_data: ExcelFile) -> dict[str, dict[str, 
             continue
 
         # Remove "N/A" from the default NA values
-        accepted_na_values = STR_NA_VALUES - {"N/A", "n/a"}
+        accepted_na_values = STR_NA_VALUES - {"N/A"}
         df = pd.read_excel(
             excel_data,
             sheet_name=sheet_name,
