@@ -23,7 +23,7 @@ MERGED_CELL_COLUMNS = {
     "type_of_ai": 1,
     "outcomes": 2,
     "process_to_achieve_outcomes": 4,
-    "nature_of_evidence": 5,
+    "evidence_type": 5,
     "evidence": 6,
 }
 
@@ -35,7 +35,7 @@ PROCESS_CHECK_COLUMNS = {
     "outcomes": 2,
     "process_id": 3,
     "process_to_achieve_outcomes": 4,
-    "nature_of_evidence": 5,
+    "evidence_type": 5,
     "evidence": 6,
     "implementation": 7,
     "elaboration": 8,
@@ -235,15 +235,25 @@ def read_principles_from_excel(excel_file) -> dict[str, dict[str, Any]]:
     Load AI principles data from an Excel file.
 
     Args:
-        excel_file: A file-like object or path to an Excel file containing principles data.
-        Can be a file path string, bytes, or file-like object.
+        excel_file): The Excel file containing principles data.
+            Can be a file path string, bytes object, or file-like object.
 
     Returns:
         dict[str, dict[str, Any]]: A nested dictionary containing the principles data.
-            The outer dictionary is keyed by principle IDs, and each inner dictionary
-            contains the principle's details including outcomes and processes.
+            The outer dictionary is keyed by principle IDs (str), and each inner dictionary
+            contains the principle's details including:
+            - principle_description (str): Description of the principle
+            - process_checks (dict): Dictionary of process checks keyed by process ID
+
+    Raises:
+        Exception: If there is an error reading or processing the Excel file.
+            The error will be logged and an empty dict will be returned.
     """
-    return process_excel_principles_data(pd.ExcelFile(excel_file))
+    try:
+        return process_excel_principles_data(pd.ExcelFile(excel_file))
+    except Exception as e:
+        logger.error(f"Error reading principles from Excel file: {str(e)}")
+        return {}
 
 
 def update_merged_cell_values(
@@ -365,8 +375,7 @@ def is_matching_process(process: dict, sheet_name: str, current_values: dict) ->
         and process.get("outcomes") == current_values.get("outcomes")
         and process.get("process_to_achieve_outcomes")
         == current_values.get("process_to_achieve_outcomes")
-        and process.get("nature_of_evidence")
-        == current_values.get("nature_of_evidence")
+        and process.get("evidence_type") == current_values.get("evidence_type")
         and process.get("evidence") == current_values.get("evidence")
     )
 

@@ -42,7 +42,9 @@ def click_start_over_button() -> None:
 
         with col1:
             if st.button("Yes, start over", use_container_width=True):
+                server_started = st.session_state.get("server_started", False)
                 st.session_state.clear()
+                st.session_state["server_started"] = server_started
                 st.rerun()
 
         with col2:
@@ -146,9 +148,9 @@ def welcome():
         11. Inclusive Growth, Societal and Environmental Well-being
         
         The processes in the testing framework are mapped to the following international frameworks:
-        - Hiroshima Process International Code of Conduct for Organizations Developing Advanced AI Systems (Hiroshima Process CoC)
+        - [Hiroshima Process International Code of Conduct for Organizations Developing Advanced AI Systems (Hiroshima Process CoC)](https://go.gov.sg/crosswalk-aivtf-coc)
 
-        - U.S. National Institute of Standards and Technology (NIST) Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile (US NIST AI RMF)
+        - [U.S. National Institute of Standards and Technology (NIST) Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile (US NIST AI RMF)](https://go.gov.sg/crosswalk-aivtfxairmf-genaiprofile)
 
         AI Verify processes that are mapped to these frameworks will have respective labels e.g. "Hiroshima Process CoC" or "US NIST AI RMF" next to them.
 

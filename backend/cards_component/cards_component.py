@@ -7,6 +7,7 @@ def create_component(
     principles_names: list[str],
     principles_data: dict[str, dict],
     current_index: int = 0,
+    key: str = "cards_component",
 ):
     """
     Create a Streamlit component for bidirectional communication.
@@ -15,6 +16,7 @@ def create_component(
         principles_names: List of principle names to display
         principles_data: Dictionary containing principle data with progress metrics
         current_index: Currently selected principle index
+        key: Unique identifier for the component
 
     Returns:
         The created Streamlit component with the rendered cards
@@ -275,9 +277,16 @@ def create_component(
     </html>
     """  # noqa: E501, W291, W293
 
-    # Write the HTML to file directly in the current directory
-    with open(index_html_path, "w") as f:
-        f.write(html_content)
+    write_file = True
+    if os.path.exists(index_html_path):
+        with open(index_html_path, "r") as f:
+            existing_content = f.read()
+        if existing_content == html_content:
+            write_file = False
+
+    if write_file:
+        with open(index_html_path, "w") as f:
+            f.write(html_content)
 
     # Create and return the component
     component = components.declare_component("cards_component", path=component_dir)
@@ -287,5 +296,5 @@ def create_component(
         principles_names=principles_names,
         principles_data=principles_data,
         current_index=current_index,
-        key="cards_component",
+        key=key,
     )

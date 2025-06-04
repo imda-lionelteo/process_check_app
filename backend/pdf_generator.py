@@ -39,8 +39,11 @@ It uses ReportLab to create professional looking documents with consistent brand
 GENERATED_REPORT_NAME = "summary_report.pdf"
 OUTPUTS_DIRECTORY = "temp_report"
 ASSETS_DIR = "assets"
-LOGO_PATH = os.path.join(ASSETS_DIR, "aiverify_logo.png")
-BACKGROUND_IMAGE_PATH = os.path.join(ASSETS_DIR, "background_image.png")
+
+IMAGES_DIR = os.path.join(ASSETS_DIR, "images")
+LOGO_PATH = os.path.join(IMAGES_DIR, "aiverify_logo.png")
+LOGO_WHITE_PATH = os.path.join(IMAGES_DIR, "aiverify_logo_white.png")
+BACKGROUND_IMAGE_PATH = os.path.join(IMAGES_DIR, "background_image.jpg")
 
 FONTS_DIRECTORY = os.path.join(ASSETS_DIR, "fonts")
 ROBOTO_REGULAR_PATH = os.path.join(FONTS_DIRECTORY, "Roboto-Regular.ttf")
@@ -56,6 +59,7 @@ DARK_GRAY = colors.HexColor("#4A4A4A")  # For text
 SUCCESS_COLOR = colors.HexColor("#4CAF50")  # Green for positive indicators
 WARNING_COLOR = colors.HexColor("#FF9800")  # Orange for warnings
 ERROR_COLOR = colors.HexColor("#F44336")  # Red for errors
+COVER_COLOR = colors.white
 
 # Register modern fonts if available, with fallbacks
 try:
@@ -72,8 +76,50 @@ except Exception:
     BOLD_FONT = "Helvetica-Bold"
     ITALIC_FONT = "Helvetica-Oblique"
 
+# Register Montserrat ExtraBold font for cover page
+try:
+    MONT_EXTRA_BOLD_PATH = os.path.join(FONTS_DIRECTORY, "Montserrat-ExtraBold.ttf")
+    pdfmetrics.registerFont(TTFont("Montserrat-ExtraBold", MONT_EXTRA_BOLD_PATH))
+    COVER_FONT = "Montserrat-ExtraBold"
+except Exception:
+    COVER_FONT = "Helvetica-Bold"  # fallback
+
+
 # Get default stylesheet and normal text style
 styles = getSampleStyleSheet()
+cover_title_style = ParagraphStyle(
+    name="CoverTitle",
+    fontName=COVER_FONT,
+    fontSize=64,
+    alignment=TA_LEFT,
+    spaceAfter=24,
+    textColor=COVER_COLOR,
+    leading=72,
+)
+cover_company_name_style = ParagraphStyle(
+    "CoverCompanyName",
+    fontName=COVER_FONT,
+    fontSize=20,
+    spaceAfter=10,
+    alignment=TA_LEFT,
+    textColor=COVER_COLOR,
+)
+cover_date_generated_style = ParagraphStyle(
+    "CoverDateGenerated",
+    fontName=COVER_FONT,
+    fontSize=16,
+    spaceAfter=12,
+    alignment=TA_LEFT,
+    textColor=COVER_COLOR,
+)
+cover_subheader_style = ParagraphStyle(
+    "CoverSubheader",
+    fontName=COVER_FONT,
+    fontSize=16,
+    spaceAfter=8,
+    alignment=TA_LEFT,
+    textColor=COVER_COLOR,
+)
 text_style = ParagraphStyle(
     "TextStyle",
     parent=styles["Normal"],
@@ -130,13 +176,6 @@ date_generated_style = ParagraphStyle(
     fontSize=12,
     spaceAfter=16,
     alignment=TA_LEFT,
-    textColor=DARK_GRAY,
-)
-footer_style = ParagraphStyle(
-    "FooterStyle",
-    parent=styles["Normal"],
-    fontName=BASE_FONT,
-    fontSize=9,
     textColor=DARK_GRAY,
 )
 
@@ -232,7 +271,7 @@ def add_page_number(canvas, doc):
         )
 
         # Add current date on the left side of footer
-        current_date = datetime.now().strftime("%Y-%m-%d")
+        current_date = datetime.now().strftime("%B %d, %Y")
         canvas.drawString(0.5 * inch, 0.5 * inch, current_date)
 
         # Draw the logo on every page (smaller version for non-cover pages)
@@ -354,7 +393,10 @@ def draw_logo(canvas, doc, size_factor=1.0):
         - Logo maintains aspect ratio when scaled
     """
     width, height = letter
-    logo = Image(LOGO_PATH)
+
+    # Use white logo for first page, regular logo for other pages
+    logo_path = LOGO_WHITE_PATH if doc.page == 1 else LOGO_PATH
+    logo = Image(logo_path)
     original_width, original_height = logo.wrap(0, 0)
 
     aspect_ratio = original_width / original_height
@@ -362,11 +404,15 @@ def draw_logo(canvas, doc, size_factor=1.0):
     desired_width = 2.5 * inch * size_factor
     desired_height = desired_width / aspect_ratio
 
-    # For first page, position at bottom right
+    # For first page, position at top right
     if doc.page == 1:
         logo.drawWidth = desired_width
         logo.drawHeight = desired_height
-        logo.drawOn(canvas, width - desired_width - 0.5 * inch, 0.5 * inch)
+        logo.drawOn(
+            canvas,
+            width - desired_width - 0.5 * inch,
+            height - desired_height - 0.3 * inch,
+        )
     else:
         # For other pages, position at top right in header area
         logo.drawWidth = desired_width * 0.7  # Even smaller for header
@@ -399,28 +445,29 @@ def generate_pdf_cover_page(workspace_data):
     """
     cover_contents = []
     company_name = workspace_data.get("company_name", "Unknown Company")
+    app_name = workspace_data.get("app_name", "Unknown Application")
 
     # Add more space at the top of the cover page
     cover_contents.append(Spacer(1, 2.5 * inch))
 
-    # Add a styled title with better spacing
-    title = Paragraph("Summary Report", title_style)
+    # Add a styled title with better spacing at the top
+    title = Paragraph("Summary Report", cover_title_style)
     cover_contents.append(title)
 
-    # Format the date with better styling
-    date_generated = datetime.now().strftime("%B %d, %Y")
+    # Set specific date
+    date_generated = datetime.now().strftime("%d %B %Y")
 
-    company_name_paragraph = Paragraph(f"{company_name}", company_name_style)
-    date_generated_paragraph = Paragraph(date_generated, date_generated_style)
-
-    cover_contents.append(company_name_paragraph)
+    date_generated_paragraph = Paragraph(date_generated, cover_date_generated_style)
     cover_contents.append(date_generated_paragraph)
+
+    company_name_paragraph = Paragraph(f"{company_name}", cover_company_name_style)
+    cover_contents.append(company_name_paragraph)
 
     # Add a decorative line
     cover_contents.append(Spacer(1, 0.5 * inch))
 
-    # Add a subtitle or description if needed
-    cover_contents.append(Paragraph("AI Verification Assessment", subheader_text_style))
+    # Add application name
+    cover_contents.append(Paragraph(f"{app_name}", cover_subheader_style))
 
     return cover_contents
 
@@ -738,8 +785,8 @@ def generate_pdf_process_checks(workspace_data):
                         Paragraph(
                             f"<b>Implemented</b><br/>"
                             f"{process_info.get('implementation', '')}<br/><br/>"
-                            f"<b>Nature of Evidence</b><br/>"
-                            f"{process_info.get('nature_of_evidence', '')}",
+                            f"<b>Evidence Type</b><br/>"
+                            f"{process_info.get('evidence_type', '')}",
                             styles["Normal"],
                         ),
                     ],
@@ -948,12 +995,12 @@ def generate_pdf_overview_page(process_checks, test_result_info):
         "By completing the AI Verify testing framework for Generative AI, "
         "which is mapped to Hiroshima Process International Code of Conduct "
         "for Organizations Developing Advanced AI Systems (CoC) and US National "
-        "Institute of Standards and Technology’s (NIST) Artificial Intelligence "
+        "Institute of Standards and Technology's (NIST) Artificial Intelligence "
         "Risk Management Framework Profile (AI RMF): Generative Artificial "
         "Intelligence, the Company has assessed its responsible AI practices against "
         "these frameworks as well. AI Verify processes that are mapped to these "
-        "frameworks will have respective labels e.g. “Hiroshima Process CoC” or “US "
-        "NIST AI RMF” next to them.",
+        'frameworks will have respective labels e.g. "Hiroshima Process CoC" or "US '
+        'NIST AI RMF" next to them.',
         text_style,
     )
     alignment_paragraph = KeepTogether([alignment_heading, alignment_body])
@@ -961,7 +1008,9 @@ def generate_pdf_overview_page(process_checks, test_result_info):
     overview_contents.append(Spacer(1, 8))
 
     # Technical test section
-    technical_test_header = Paragraph("Technical Test", header_text_style)
+    technical_test_header = Paragraph(
+        "Technical Test (see details under Safety principle)", header_text_style
+    )
     overview_contents.append(technical_test_header)
     if not test_result_info:
         no_test_paragraph = Paragraph("<b>No technical test uploaded.</b>", text_style)
@@ -1195,7 +1244,7 @@ def generate_pdf_technical_test_page(test_result_info):
     # Add the title as a separate paragraph
     what_it_means_title = Paragraph("What It Means:", what_it_means_title_style)
     what_it_means_text = (
-        "The tests conducted can provide valuable insights into the AI application’s performance and "
+        "The tests conducted can provide valuable insights into the AI application's performance and "
         "safety. Each test is accompanied by a score, with the interpretation varying: in some cases, "
         "higher scores indicate better performance or reliability, while in others, lower scores are "
         "preferable (e.g., fewer adverse outcomes or successful prompt injections)."
@@ -1232,7 +1281,7 @@ def generate_pdf_technical_test_page(test_result_info):
         "suggest the AI system is performing well or safe in those areas, while lower performance or "
         "higher risk scores indicate potential risks that could impact business operations or expose the "
         "Company to safety issues. Company would need to assess if the test score is acceptable "
-        "according to Company’s risk tolerance level."
+        "according to Company's risk tolerance level."
     )
     recommendation_paragraph = Paragraph(recommendation_text, recommendation_style)
     technical_test_contents.append(recommendation_title)

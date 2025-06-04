@@ -9,8 +9,13 @@ def get_map_color_mapping():
         dict: A dictionary mapping colors to framework names.
             - 'blue': US NIST AI RMF
             - 'violet': Hiroshima Process CoC
+            - 'green': ISO 42001
     """
-    return {"blue": "US NIST AI RMF", "violet": "Hiroshima Process CoC"}
+    return {
+        "blue": "US NIST AI RMF",
+        "violet": "Hiroshima Process CoC",
+        "green": "ISO 42001",
+    }
 
 
 def load_map_data():
@@ -27,5 +32,5 @@ def load_map_data():
         FileNotFoundError: If the map.json file doesn't exist.
         json.JSONDecodeError: If the file contains invalid JSON.
     """
-    with open("assets/map.json", "r") as f:
+    with open("assets/references/map.json", "r") as f:
         return json.load(f)

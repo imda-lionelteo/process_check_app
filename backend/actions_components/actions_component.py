@@ -33,12 +33,8 @@ def create_actions_component(
             .workspace-info-container {
                 display: flex;
                 flex-direction: row;
-                border: none;
-                border-radius: 0;
                 margin-bottom: 16px;
-                padding: 0;
-                overflow: hidden;
-                font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+                font-family: system-ui, -apple-system, sans-serif;
             }
             
             .workspace-info-left {
@@ -58,36 +54,57 @@ def create_actions_component(
                 color: #6b7280;
                 font-weight: 500;
                 margin-bottom: 6px;
-                letter-spacing: 0.025em;
             }
             
             .workspace-info-value {
                 font-size: 15px;
-                font-weight: 400;
                 color: #111827;
-                line-height: 1.5;
                 margin-bottom: 16px;
                 display: block;
             }
             
             .workspace-info-description {
-                display: block;
                 font-size: 16px;
                 color: #4b5563;
                 margin-bottom: 18px;
                 line-height: 1.5;
-                margin-top: 4px;
             }
             
+            /* Tooltip specific styles */
             .workspace-info-field.workspace-id-field {
                 font-size: 14px;
                 color: #4b5563;
                 font-weight: 600;
                 margin-top: 16px;
                 margin-bottom: 8px;
-                display: block;
+                position: relative;
             }
             
+            [data-tooltip]::before {
+                content: attr(data-tooltip);
+                position: fixed;
+                opacity: 0;
+                transition: opacity 0.15s ease;
+                padding: 10px;
+                color: #333;
+                border-radius: 10px;
+                box-shadow: 2px 2px 1px silver;
+                background: #f3f4f6;
+                z-index: 9999;
+                width: max-content;
+                max-width: 200px;
+                font-size: 12px;
+                pointer-events: none;
+            }
+            
+            [data-tooltip]:hover::before {
+                opacity: 1;
+                margin-top: -40px;
+                margin-left: 20px;
+                z-index: 9999;
+            }
+            
+            /* Workspace ID tag styles */
             .workspace-id-tag {
                 display: inline-block;
                 font-size: 14px;
@@ -96,16 +113,15 @@ def create_actions_component(
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
                 color: #1f2937;
-                font-family: 'Roboto Mono', monospace;
-                letter-spacing: 0.025em;
-                font-weight: 500;
+                font-family: monospace;
             }
             
+            /* Edit button styles */
             .edit-btn {
                 position: absolute;
                 top: 16px;
                 right: 16px;
-                background-color: transparent;
+                background: transparent;
                 border: none;
                 width: 32px;
                 height: 32px;
@@ -122,10 +138,6 @@ def create_actions_component(
                 background-color: #f3f4f6;
                 color: #374151;
             }
-            
-            .material-icon {
-                font-size: 16px;
-            }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     </head>
@@ -141,9 +153,9 @@ def create_actions_component(
                         <div class="workspace-info-field">Application Description</div>
                         <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
                     </div>
-                    <div style="margin-top: 16px; width: 100%; overflow: hidden;">
-                        <div class="workspace-info-field workspace-id-field">Workspace ID</div>
-                        <span class="workspace-id-tag" id="workspace-id" style="display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
+                    <div style="margin-top: 16px; width: 15%; overflow: hidden;">
+                        <div class="workspace-info-field workspace-id-field" data-tooltip="This is your unique workspace identifier. It's used to track and manage your workspace data.">Workspace ID</div>
+                        <span class="workspace-id-tag" id="workspace-id" style="margin-top: 10px; display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
                     </div>
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
@@ -182,7 +194,7 @@ def create_actions_component(
             }
             
             // Handle clicks on buttons
-            document.getElementById('edit-button').addEventListener('click', function() {
+            document.getElementById('edit-button').addEventListener('click', () => {
                 sendDataToPython('edit');
             });
             
@@ -229,8 +241,16 @@ def create_actions_component(
     """  # noqa: E501, W291, W293
 
     # Write the HTML to file
-    with open(actions_html_path, "w") as f:
-        f.write(html_content)
+    write_file = True
+    if os.path.exists(actions_html_path):
+        with open(actions_html_path, "r") as f:
+            existing_content = f.read()
+        if existing_content == html_content:
+            write_file = False
+
+    if write_file:
+        with open(actions_html_path, "w") as f:
+            f.write(html_content)
 
     # Create and return the component
     component = components.declare_component("actions_component", path=component_dir)
@@ -276,29 +296,14 @@ def create_actions_component_no_excel(
             .workspace-info-container {
                 display: flex;
                 flex-direction: row;
-                border: none;
-                border-radius: 0;
                 margin-bottom: 16px;
-                padding: 0;
-                overflow: hidden;
-                font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+                font-family: system-ui, -apple-system, sans-serif;
             }
             
             .workspace-info-left {
                 flex: 3;
                 padding: 20px 24px 20px 0;
                 position: relative;
-            }
-            
-            .workspace-info-right {
-                flex: 1;
-                padding: 20px 0 20px 24px;
-                background-color: #ffffff;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 16px;
             }
             
             .workspace-info-divider {
@@ -312,7 +317,6 @@ def create_actions_component_no_excel(
                 color: #6b7280;
                 font-weight: 500;
                 margin-bottom: 6px;
-                letter-spacing: 0.025em;
             }
             
             .workspace-info-value {
@@ -325,23 +329,47 @@ def create_actions_component_no_excel(
             }
             
             .workspace-info-description {
-                display: block;
                 font-size: 16px;
                 color: #4b5563;
                 margin-bottom: 18px;
                 line-height: 1.5;
-                margin-top: 4px;
             }
             
+            /* Tooltip specific styles */
             .workspace-info-field.workspace-id-field {
                 font-size: 14px;
                 color: #4b5563;
                 font-weight: 600;
                 margin-top: 16px;
                 margin-bottom: 8px;
-                display: block;
+                position: relative;
             }
             
+            [data-tooltip]::before {
+                content: attr(data-tooltip);
+                position: fixed;
+                opacity: 0;
+                transition: opacity 0.15s ease;
+                padding: 10px;
+                color: #333;
+                border-radius: 10px;
+                box-shadow: 2px 2px 1px silver;
+                background: #f3f4f6;
+                z-index: 9999;
+                width: max-content;
+                max-width: 200px;
+                font-size: 12px;
+                pointer-events: none;
+            }
+            
+            [data-tooltip]:hover::before {
+                opacity: 1;
+                margin-top: -40px;
+                margin-left: 20px;
+                z-index: 9999;
+            }
+            
+            /* Workspace ID tag styles */
             .workspace-id-tag {
                 display: inline-block;
                 font-size: 14px;
@@ -350,26 +378,15 @@ def create_actions_component_no_excel(
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
                 color: #1f2937;
-                font-family: 'Roboto Mono', monospace;
-                letter-spacing: 0.025em;
-                font-weight: 500;
+                font-family: monospace;
             }
             
-            .autosave-indicator {
-                color: #10b981;
-                font-size: 13px;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-bottom: 10px;
-            }
-            
+            /* Edit button styles */
             .edit-btn {
                 position: absolute;
                 top: 16px;
                 right: 16px;
-                background-color: transparent;
+                background: transparent;
                 border: none;
                 width: 32px;
                 height: 32px;
@@ -405,9 +422,9 @@ def create_actions_component_no_excel(
                         <div class="workspace-info-field">Application Description</div>
                         <span class="workspace-info-description" id="app-description"></span>
                     </div>
-                    <div style="margin-top: 16px;">
-                        <div class="workspace-info-field workspace-id-field">Workspace ID</div>
-                        <span class="workspace-id-tag" id="workspace-id"></span>
+                    <div style="margin-top: 16px; width: 15%; overflow: hidden;">
+                        <div class="workspace-info-field workspace-id-field" data-tooltip="This is your unique workspace identifier. It's used to track and manage your workspace data.">Workspace ID</div>
+                        <span class="workspace-id-tag" id="workspace-id" style="margin-top: 10px; display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
                     </div>
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
@@ -445,7 +462,7 @@ def create_actions_component_no_excel(
             }
             
             // Handle clicks on buttons
-            document.getElementById('edit-button').addEventListener('click', function() {
+            document.getElementById('edit-button').addEventListener('click', () => {
                 sendDataToPython('edit');
             });
             
@@ -494,15 +511,8 @@ def create_actions_component_no_excel(
             
             // Event listeners
             window.addEventListener("message", onDataFromPython);
-            window.addEventListener("load", function() {
-                // Initial height calculation after DOM content is loaded
-                setTimeout(calculateAndSetHeight, 100);
-            });
-            
-            // Also recalculate on window resize
-            window.addEventListener("resize", function() {
-                calculateAndSetHeight();
-            });
+            window.addEventListener("load", () => setTimeout(calculateAndSetHeight, 100));
+            window.addEventListener("resize", calculateAndSetHeight);
             
             // Initialize the component
             init();
@@ -512,8 +522,16 @@ def create_actions_component_no_excel(
     """  # noqa: E501, W291, W293
 
     # Write the HTML to file directly in the current directory
-    with open(actions_html_path, "w") as f:
-        f.write(html_content)
+    write_file = True
+    if os.path.exists(actions_html_path):
+        with open(actions_html_path, "r") as f:
+            existing_content = f.read()
+        if existing_content == html_content:
+            write_file = False
+
+    if write_file:
+        with open(actions_html_path, "w") as f:
+            f.write(html_content)
 
     # Create and return the component
     component = components.declare_component("actions_component", path=component_dir)

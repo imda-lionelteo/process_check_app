@@ -15,7 +15,7 @@ from frontend.styles.process_check_styles import (
 )
 
 # Global variable for the reference Excel file path
-REFERENCE_EXCEL_FILE_PATH = "assets/AI_Verify_Checklist_PP.xlsx"
+REFERENCE_EXCEL_FILE_PATH = "assets/references/aivtf-excel.xlsx"
 
 # Implementation choices for process checks
 IMPLEMENTATION_CHOICES = ("Yes", "No", "N/A")
@@ -142,7 +142,14 @@ class ProcessCheck:
         """
         self.uploaded_file_data = read_principles_from_excel(import_excel_file)
         if not self.uploaded_file_data:
-            return {}, "Failed to load principles data from file", False
+            return (
+                {},
+                (
+                    "We were unable to load the principles data from your file. "
+                    "Please ensure you have selected a valid Excel file in the correct format and try again."
+                ),
+                False,
+            )
 
         # Create a deep copy of the current principles data
         updated_principles_data = self.principles_data.copy()
@@ -211,21 +218,21 @@ class ProcessCheck:
 
         return principles_data_with_progress
 
-    def _render_evidence_section(self, nature_of_evidence: str, evidence: str) -> None:
+    def _render_evidence_section(self, evidence_type: str, evidence: str) -> None:
         """
         Render the evidence section of a process.
 
         Args:
-            nature_of_evidence: Description of the nature of evidence.
+            evidence_type: Description of the evidence type.
             evidence: Description of the evidence.
         """
-        if nature_of_evidence:
+        if evidence_type:
             st.markdown(
-                '<div class="pc-evidence-tag">Nature of Evidence</div>',
+                '<div class="pc-evidence-tag">Evidence Type</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f"{nature_of_evidence}",
+                f"{evidence_type}",
                 unsafe_allow_html=True,
             )
 
@@ -401,7 +408,7 @@ class ProcessCheck:
             process_map_data: List containing mapping data for governance frameworks related to this process.
         """
         process_to_achieve_outcomes = process_info["process_to_achieve_outcomes"]
-        nature_of_evidence = process_info["nature_of_evidence"]
+        evidence_type = process_info["evidence_type"]
         evidence = process_info["evidence"]
 
         # Process information header section
@@ -430,7 +437,7 @@ class ProcessCheck:
                 )
 
         with right_col:
-            self._render_evidence_section(nature_of_evidence, evidence)
+            self._render_evidence_section(evidence_type, evidence)
 
         # Reduce space between process description and implementation status
         st.markdown(
@@ -557,6 +564,7 @@ class ProcessCheck:
 
             uploaded_file = st.file_uploader("Choose a file", type=["xlsx"])
 
+            error_message_to_display = None
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(
@@ -574,16 +582,15 @@ class ProcessCheck:
                                 merged_data
                             )
                             st.session_state["workspace_data"]["process_checks"] = {}
-
-                            # Close import form and refresh
-                            st.session_state["show_import_form"] = False
                             st.rerun()
                         else:
-                            st.error(error_msg)
+                            error_message_to_display = error_msg
             with col2:
                 if st.button("Cancel", use_container_width=True):
-                    st.session_state["show_import_form"] = False
                     st.rerun()
+
+            if error_message_to_display:
+                st.error(error_message_to_display)
 
         # Call the dialog function to display it
         import_dialog()
@@ -739,18 +746,12 @@ class ProcessCheck:
         # Initialize session state variables if they don't exist
         if "edit_mode" not in st.session_state:
             st.session_state["edit_mode"] = False
-        if "show_import_form" not in st.session_state:
-            st.session_state["show_import_form"] = False
 
         # Create the component and get any action returned (only if not in edit mode)
         if st.session_state["edit_mode"]:
             # Display the edit form instead of the component
             self.display_edit_form()
         else:
-            if st.session_state["show_import_form"]:
-                # Display the import form
-                self.display_import_form()
-
             # Create two columns
             left_col, right_col = st.columns([3, 1])
 
@@ -779,20 +780,10 @@ class ProcessCheck:
                         unsafe_allow_html=True,
                     )
 
-                    # Import button with fixed label length
-                    if st.button(
-                        "Import from Excel",
-                        help="If you have completed the process checks in the offline Excel file, you can import the Excel file into this toolkit to generate a report \n Importing the file will override your current progress and responses. \n As this action is irreversible, we recommend to export or back-up your existing data before proceeding.",  # noqa: E501
-                        icon=":material/file_upload:",
-                        use_container_width=True,
-                    ):
-                        st.session_state["show_import_form"] = True
-                        st.rerun()
-
                     # Export button with cached data
                     st.download_button(
                         label="Export as Excel",
-                        help="Export the current process checks into an Excel file and work on it offline.",
+                        help="Export the current process checks into an Excel file and work on it offline. Once you’ve made your updates, you can import the file using the “Import from Excel” button below to automatically populate your responses in the tool.",  # noqa: E501
                         icon=":material/file_download:",
                         data=get_export_data(
                             REFERENCE_EXCEL_FILE_PATH,
@@ -801,6 +792,20 @@ class ProcessCheck:
                         file_name=f"process_checks_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.xlsx",
                         use_container_width=True,
                     )
+
+                    # Import button with fixed label length
+                    if st.button(
+                        "Import from Excel",
+                        help=(
+                            "If you have worked on the process checks in an offline Excel file, "
+                            "you can import the file here to auto-populate the responses and generate a report.\n\n"
+                            "Please note that importing will override your current progress and responses. "
+                            "To avoid losing any work, we recommend exporting your latest work before importing a new file."  # noqa: E501
+                        ),  # noqa: E501
+                        icon=":material/file_upload:",
+                        use_container_width=True,
+                    ):
+                        self.display_import_form()
 
     def render_process_checks(
         self, principle_name: str, principle_description: str, principle_key: str
@@ -841,37 +846,51 @@ class ProcessCheck:
 
     def render_process_checks_pane(self) -> None:
         """
-        Render the content of the principles in the Streamlit app.
+        Render the principles content pane in the Streamlit app.
 
-        Creates a two-column layout with principle selection on the left and details on the right.
+        Creates a two-column layout with:
+        - Left column: Principle selection cards showing progress
+        - Right column: Detailed process checks for selected principle with navigation
+
+        The component maintains state between renders using st.session_state["cards_component"]
+        to track the currently selected principle index.
+
+        Handles navigation between principles via Previous/Next buttons and card selection.
+        Automatically saves workspace data and refreshes the page when needed.
         """
         # Apply main styles
         st.markdown(get_main_styles(), unsafe_allow_html=True)
 
-        # Initialize cards_component if it doesn't exist
+        # Initialize cards component state if not already set
         if "cards_component" not in st.session_state:
             st.session_state["cards_component"] = 0
 
-        # Create a list of user-friendly principle names and prepare progress data
+        # Get principle names and progress data
         principles_data_with_progress = self._prepare_principles_data_with_progress()
         friendly_principles_names = [
             self.get_friendly_principle_name(name)
             for name in self.principles_data.keys()
         ]
 
+        # Create two-column layout
         left_col, right_col = st.columns([1, 3], gap="small")
         with left_col:
-            current_index = st.session_state["cards_component"]
+            # Render principle selection cards and handle selection
             selected_index = create_component(
-                friendly_principles_names, principles_data_with_progress, current_index
+                friendly_principles_names,
+                principles_data_with_progress,
+                st.session_state["cards_component"],
+                key=f"cards_{st.session_state['cards_component']}",
             )
-
-            if selected_index is not None and selected_index != current_index:
+            if (
+                selected_index is not None
+                and selected_index != st.session_state["cards_component"]
+            ):
                 st.session_state["cards_component"] = selected_index
                 st.rerun()
 
         with right_col:
-            # Get the current principle data
+            # Get currently selected principle
             current_index = st.session_state["cards_component"]
             if 0 <= current_index < len(friendly_principles_names):
                 principle_key = list(self.principles_data.keys())[current_index]
@@ -880,17 +899,42 @@ class ProcessCheck:
                     "principle_description", ""
                 )
 
-                # Display process checks for this principle
+                # Display process checks for selected principle
                 self.render_process_checks(
                     principle_name, principle_description, principle_key
                 )
+
+            # Add Previous/Next navigation buttons
+            nav_col1, _, nav_col3 = st.columns([2, 4, 2])
+            with nav_col1:
+                if st.button(
+                    ":material/arrow_back: Previous Principle",
+                    use_container_width=True,
+                    disabled=st.session_state["cards_component"] == 0,
+                ):
+                    st.session_state["cards_component"] = max(
+                        0, st.session_state["cards_component"] - 1
+                    )
+                    st.rerun()
+            with nav_col3:
+                if st.button(
+                    "Next Principle :material/arrow_forward:",
+                    use_container_width=True,
+                    disabled=st.session_state["cards_component"]
+                    == len(friendly_principles_names) - 1,
+                ):
+                    st.session_state["cards_component"] = min(
+                        len(friendly_principles_names) - 1,
+                        st.session_state["cards_component"] + 1,
+                    )
+                    st.rerun()
 
         # Save workspace data
         save_workspace(
             st.session_state["workspace_id"], st.session_state["workspace_data"]
         )
 
-        # Check if we need to refresh the page
+        # Handle page refresh if needed
         if st.session_state.get("needs_refresh", False):
             st.session_state["needs_refresh"] = False
             st.rerun()
@@ -950,7 +994,9 @@ def click_start_over_button() -> None:
 
         with col1:
             if st.button("Yes, start over", use_container_width=True):
+                server_started = st.session_state.get("server_started", False)
                 st.session_state.clear()
+                st.session_state["server_started"] = server_started
                 st.rerun()
 
         with col2:

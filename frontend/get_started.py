@@ -11,7 +11,7 @@ from backend.workspace import (
 )
 
 # File paths and URLs for resources
-GETTING_STARTED_DIAG_PATH = "assets/getting_started_diag.png"
+GETTING_STARTED_DIAG_PATH = "assets/images/getting_started_diag.png"
 TESTING_FRAMEWORK_FILE_URL_EXCEL = "https://go.gov.sg/aivtf-excel"
 
 
@@ -188,7 +188,9 @@ def click_start_over_button() -> None:
 
         with col1:
             if st.button("Yes, start over", use_container_width=True):
+                server_started = st.session_state.get("server_started", False)
                 st.session_state.clear()
+                st.session_state["server_started"] = server_started
                 st.rerun()
 
         with col2:
@@ -235,7 +237,7 @@ def display_getting_started() -> None:
     st.info(
         f"""
         You can download a copy of the testing framework here\n
-        Download Testing Framework - PDF\n
+        [Download Testing Framework - PDF](https://go.gov.sg/aivtf-pdf)\n
         [Download Testing Framework - Excel]({TESTING_FRAMEWORK_FILE_URL_EXCEL})
     """
     )

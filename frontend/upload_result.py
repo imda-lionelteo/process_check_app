@@ -7,8 +7,11 @@ import streamlit as st
 from backend.report_validation import validate_json
 from backend.workspace import initialize, save_workspace
 
-GA_SAMPLE_REPORT_PATH = "assets/ms_ga_result_template.json"
-v06_SAMPLE_REPORT_PATH = "assets/ms_v0.6_result_template.json"
+GA_SAMPLE_REPORT_NAME = "ms_ga_result_template.json"
+GA_SAMPLE_REPORT_PATH = os.path.join("assets", "results", GA_SAMPLE_REPORT_NAME)
+
+V06_SAMPLE_REPORT_NAME = "ms_v0.6_result_template.json"
+V06_SAMPLE_REPORT_PATH = os.path.join("assets", "results", V06_SAMPLE_REPORT_NAME)
 
 
 def click_back_button() -> None:
@@ -67,7 +70,9 @@ def click_start_over_button() -> None:
 
         with col1:
             if st.button("Yes, start over", use_container_width=True):
+                server_started = st.session_state.get("server_started", False)
                 st.session_state.clear()
+                st.session_state["server_started"] = server_started
                 st.rerun()
 
         with col2:
@@ -408,15 +413,11 @@ def upload_result():
 
     with open(GA_SAMPLE_REPORT_PATH, "r") as sample_file:
         sample_data = sample_file.read()
-        download_link_1 = get_download_link(
-            sample_data, "ms_ga_result_template.json", "here"
-        )
+        download_link_1 = get_download_link(sample_data, GA_SAMPLE_REPORT_NAME, "here")
 
-    with open(v06_SAMPLE_REPORT_PATH, "r") as sample_file:
+    with open(V06_SAMPLE_REPORT_PATH, "r") as sample_file:
         sample_data = sample_file.read()
-        download_link_2 = get_download_link(
-            sample_data, "ms_v0.6_result_template.json", "here"
-        )
+        download_link_2 = get_download_link(sample_data, V06_SAMPLE_REPORT_NAME, "here")
 
     st.markdown(
         f"""

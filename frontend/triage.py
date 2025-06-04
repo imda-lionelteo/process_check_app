@@ -150,7 +150,7 @@ def display_logo():
     """
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("assets/aiverify_logo.png", width=700)  # Display logo
+        st.image("assets/images/aiverify_logo.png", width=700)  # Display logo
 
 
 def display_new_process_button():
