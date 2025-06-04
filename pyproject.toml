@@ -1,0 +1,25 @@
+[project]
+name = "process-check-app"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Lionel Teo",email = "lionel_teo@imda.gov.sg"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4"
+dependencies = [
+    "streamlit (>=1.44.0,<2.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "bleach (>=6.2.0,<7.0.0)",
+    "reportlab (>=4.4.0,<5.0.0)",
+    "matplotlib (>=3.10.1,<4.0.0)",
+    "pydantic (>=2.10.6,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
