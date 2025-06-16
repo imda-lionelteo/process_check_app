@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -167,6 +168,9 @@ def save_workspace(workspace_id: str, workspace_data: dict) -> bool:
     Returns:
         True if the workspace was successfully saved, False otherwise
     """
+    # Add last saved date to workspace data
+    workspace_data["last_saved"] = datetime.now().isoformat(timespec="seconds")
+
     ensure_outputs_directory_exists()
     file_path = OUTPUTS_DIRECTORY / f"{workspace_id}.json"
 

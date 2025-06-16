@@ -13,6 +13,7 @@ from frontend.styles.process_check_styles import (
     get_process_check_density_styles,
     get_process_check_styles,
 )
+from streamlit_scroll_to_top import scroll_to_here
 
 # Global variable for the reference Excel file path
 REFERENCE_EXCEL_FILE_PATH = "assets/references/aivtf-excel.xlsx"
@@ -26,7 +27,12 @@ class ProcessCheck:
     Main class for handling process check functionality.
 
     This class manages the loading, display, and interaction with process checks
-    based on principles data loaded from an Excel file.
+    based on principles data loaded from an Excel file. It provides functionality for:
+    - Loading and initializing process check data
+    - Displaying the process check interface
+    - Handling user interactions and responses
+    - Managing progress tracking
+    - Supporting import/export of process check data
     """
 
     def __init__(self):
@@ -78,7 +84,9 @@ class ProcessCheck:
         Calculate progress metrics for the progress bar.
 
         Returns:
-            tuple: Contains (progress_ratio, progress_message)
+            tuple: Contains (progress_ratio, progress_message) where:
+                - progress_ratio (float): Ratio of answered questions to total questions (0-1)
+                - progress_message (str): Formatted message showing progress statistics
         """
         progress_data = st.session_state["workspace_data"]["progress_data"]
         total_questions = progress_data.get("total_questions", 0)
@@ -99,11 +107,11 @@ class ProcessCheck:
         Group process checks by their outcome ID and prepare the data structure for each check.
 
         Args:
-            sorted_checks: List of tuples (process_id, process_data)
-            principle_key: String identifier for the principle these checks belong to.
+            sorted_checks: List of tuples (process_id, process_data) containing process check information
+            principle_key: String identifier for the principle these checks belong to
 
         Returns:
-            dict: Grouped process checks by outcome ID
+            dict: Grouped process checks by outcome ID, with each process containing complete metadata
         """
         outcome_groups = {}
         all_keys = self.get_all_process_check_keys()
@@ -138,7 +146,10 @@ class ProcessCheck:
             import_excel_file: The Excel file containing implementation data to merge
 
         Returns:
-            tuple: (merged_data, error_message, success_flag)
+            tuple: Contains (merged_data, error_message, success_flag) where:
+                - merged_data (dict): The merged principles data if successful
+                - error_message (str): Error message if merge failed, empty string if successful
+                - success_flag (bool): True if merge was successful, False otherwise
         """
         self.uploaded_file_data = read_principles_from_excel(import_excel_file)
         if not self.uploaded_file_data:
@@ -194,7 +205,9 @@ class ProcessCheck:
         Prepare principles data with progress information for the component.
 
         Returns:
-            dict: Principles data with added progress metrics.
+            dict: Principles data with added progress metrics including:
+                - total_checks: Total number of checks for each principle
+                - answered_checks: Number of answered checks for each principle
         """
         principles_data_with_progress = {}
         progress_data = st.session_state["workspace_data"]["progress_data"][
@@ -223,8 +236,8 @@ class ProcessCheck:
         Render the evidence section of a process.
 
         Args:
-            evidence_type: Description of the evidence type.
-            evidence: Description of the evidence.
+            evidence_type: Description of the evidence type expected for this process check
+            evidence: Detailed description of what evidence should be provided
         """
         if evidence_type:
             st.markdown(
@@ -258,10 +271,10 @@ class ProcessCheck:
         Render the implementation status and elaboration section of a process.
 
         Args:
-            process_id: The ID of the process.
-            process_info: Dictionary containing process information.
-            outcome_id: The ID of the parent outcome.
-            outcome: The description of the parent outcome.
+            process_id: The ID of the process being rendered
+            process_info: Dictionary containing process information including current implementation status
+            outcome_id: The ID of the parent outcome this process belongs to
+            outcome: The description of the parent outcome
         """
         impl_col, elab_col = st.columns([1, 2], gap="small")
 
@@ -324,7 +337,7 @@ class ProcessCheck:
         Render colored badges for mapped governance framework items.
 
         Args:
-            process_map_data: List containing map data with color keys and framework items.
+            process_map_data: List containing map data with color keys and framework items to be displayed as badges
         """
         if not process_map_data:
             return
@@ -350,9 +363,9 @@ class ProcessCheck:
         Render a container for a specific outcome and its processes.
 
         Args:
-            outcome_id: The ID of the outcome to render.
-            processes: Dictionary of processes associated with this outcome.
-            map_data: Dictionary containing mapping data for governance frameworks.
+            outcome_id: The ID of the outcome to render
+            processes: Dictionary of processes associated with this outcome
+            map_data: Dictionary containing mapping data for governance frameworks
         """
         with st.container(border=True):
             # Apply compact spacing styles
@@ -401,11 +414,11 @@ class ProcessCheck:
         Render a single process with its details and input fields.
 
         Args:
-            process_id: The ID of the process to render.
-            process_info: Dictionary containing process information including implementation status and elaboration.
-            outcome_id: The ID of the parent outcome.
-            outcome: The description of the parent outcome.
-            process_map_data: List containing mapping data for governance frameworks related to this process.
+            process_id: The ID of the process to render
+            process_info: Dictionary containing process information including implementation status and elaboration
+            outcome_id: The ID of the parent outcome
+            outcome: The description of the parent outcome
+            process_map_data: List containing mapping data for governance frameworks related to this process
         """
         process_to_achieve_outcomes = process_info["process_to_achieve_outcomes"]
         evidence_type = process_info["evidence_type"]
@@ -453,6 +466,12 @@ class ProcessCheck:
     def display(self):
         """
         Display the main process check interface in the Streamlit app.
+
+        This method orchestrates the display of all components including:
+        - Instructions
+        - Action buttons
+        - Progress bar
+        - Process check content pane
         """
         self.initialize_process_checks_data()
         self.display_instructions()
@@ -473,6 +492,12 @@ class ProcessCheck:
     def display_edit_form(self):
         """
         Display a form for editing app information.
+
+        The form includes:
+        - Application name input
+        - Application description input
+        - Save and Cancel buttons
+        - Input validation and error handling
         """
         # Get current values from session state
         workspace_data = st.session_state["workspace_data"]
@@ -545,11 +570,19 @@ class ProcessCheck:
     def display_import_form(self) -> None:
         """
         Display a dialog for importing Excel files.
+
+        The dialog includes:
+        - File upload widget
+        - Warning about data overwrite
+        - Import and Cancel buttons
+        - Error handling and success feedback
         """
 
         @st.dialog("Import from Excel")
         def import_dialog() -> None:
-            st.write("Please upload your Excel file containing process check data.")
+            st.write(
+                "If you have worked on the process checks in an offline Excel file, you can import the file here to auto-populate the responses and generate a report."  # noqa: E501
+            )
             st.warning(
                 """
             Importing a new file will:
@@ -598,6 +631,12 @@ class ProcessCheck:
     def display_instructions(self) -> None:
         """
         Display instructions for completing the process checklist.
+
+        Shows an expandable section containing:
+        - Overview of the process checks section
+        - Instructions for answering questions
+        - Information about auto-save functionality
+        - Guidance on offline work using Excel export/import
         """
         with st.expander("Instructions", expanded=True):
             st.markdown(
@@ -606,14 +645,20 @@ class ProcessCheck:
 
             - Click on each principle to answer the process checks questions
 
-            - For each process check question, select one of the following options: Yes, No or Not Applicable
-                1.	Yes: If the process is implemented, you can provide supporting evidence
-                2.	No: If the process is not implemented, provide reasons to show that the decision is a deliberate and considered one
-                3.	Not Applicable: If the process does not apply to your application, you can provide reasons to show that the decision is a deliberate and considered one
+            - For each process check question, select one of the following options: **Yes**, **No** or **Not Applicable**
+                1.	**Yes**: If the process is implemented, you can provide supporting evidence
+                2.	**No**: If the process is not implemented, provide reasons to show that the decision is a
+                deliberate and considered one
+                3.	**Not Applicable**: If the process does not apply to your application, you can provide reasons to
+                show that the decision is a deliberate and considered one
 
-            - Your progress on the process checks will be saved automatically
+            - **:violet[Auto-saved enabled: Your progress on the process checks will be saved automatically]**
 
             - Once you have completed all 11 principles, you can click the "Next" button to proceed to the next section
+
+            - If you prefer to complete the process checks offline, you may use the "Export" button to export the
+            current session into an Excel file. When you are ready to generate the Summary Report, use "Import" button
+            to import the completed Excel file and continue with the rest of the steps.
             """  # noqa: E501
             )
 
@@ -622,7 +667,7 @@ class ProcessCheck:
         Get all possible keys from process checks across all principles.
 
         Returns:
-            list: List of all unique keys found in process checks
+            list: List of all unique keys found in process checks data structures
         """
         keys = set()
         for principle in self.principles_data.values():
@@ -635,10 +680,10 @@ class ProcessCheck:
         Convert a principle name to a more user-friendly format.
 
         Args:
-            principle_name: The original principle name with potential HTML entities.
+            principle_name: The original principle name with potential HTML entities
 
         Returns:
-            str: A user-friendly version of the principle name with proper formatting.
+            str: A user-friendly version of the principle name with proper formatting and special case handling
         """
         # Mapping for HTML entity replacement and text normalization
         principles_mapping = {
@@ -661,7 +706,12 @@ class ProcessCheck:
         Calculate comprehensive statistics for process checks.
 
         Returns:
-            dict: Dictionary containing overall totals and per-principle statistics
+            dict: Dictionary containing:
+                - total_questions: Total number of questions across all principles
+                - total_answered_questions: Total number of answered questions
+                - principles: Dictionary of per-principle statistics including:
+                    - principle_total: Total questions for each principle
+                    - principle_answered: Answered questions for each principle
         """
         stats = {"total_questions": 0, "total_answered_questions": 0, "principles": {}}
 
@@ -701,6 +751,12 @@ class ProcessCheck:
     def initialize_process_checks_data(self) -> None:
         """
         Initialize the process checks data in session state.
+
+        This method:
+        1. Creates the process_checks data structure if it doesn't exist
+        2. Groups process checks by outcome ID
+        3. Sorts outcomes and processes
+        4. Stores the organized data in the session state
         """
         if "process_checks" not in st.session_state.get("workspace_data", {}):
             process_checks_data = {}
@@ -736,6 +792,12 @@ class ProcessCheck:
     def render_action_buttons(self) -> None:
         """
         Render the action buttons for process checks using a custom component.
+
+        Displays:
+        - Application information with edit capability
+        - Auto-save indicator
+        - Export to Excel button
+        - Import from Excel button
         """
         # Get data
         workspace_id = st.session_state.get("workspace_id", "")
@@ -780,10 +842,36 @@ class ProcessCheck:
                         unsafe_allow_html=True,
                     )
 
+                    # Display last saved date if available
+                    last_saved = st.session_state["workspace_data"]["last_saved"]
+                    # Format the timestamp from ISO format to DDMMYY HHMMSS
+                    try:
+                        # Parse the ISO timestamp
+                        dt = datetime.fromisoformat(last_saved)
+                        # Format to DDMMYY HHMMSS
+                        formatted_last_saved = dt.strftime("%d/%m/%y %H:%M:%S")
+                    except (ValueError, TypeError):
+                        # Fallback to original format if parsing fails
+                        formatted_last_saved = last_saved
+
+                    st.markdown(
+                        f"""
+                        <div style="color: #6b7280; font-size: 14px; margin-bottom: 70px; display: flex;
+                        align-items: center; justify-content: center;">
+                            Last saved: {formatted_last_saved}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
                     # Export button with cached data
                     st.download_button(
                         label="Export as Excel",
-                        help="Export the current process checks into an Excel file and work on it offline. Once you’ve made your updates, you can import the file using the “Import from Excel” button below to automatically populate your responses in the tool.",  # noqa: E501
+                        help=(
+                            "Export the current process checks into an Excel file and work on it offline. "
+                            "Once you've made your updates, you can import the file using the "
+                            '"Import from Excel" button below to automatically populate your responses in the tool.'
+                        ),
                         icon=":material/file_download:",
                         data=get_export_data(
                             REFERENCE_EXCEL_FILE_PATH,
@@ -800,8 +888,9 @@ class ProcessCheck:
                             "If you have worked on the process checks in an offline Excel file, "
                             "you can import the file here to auto-populate the responses and generate a report.\n\n"
                             "Please note that importing will override your current progress and responses. "
-                            "To avoid losing any work, we recommend exporting your latest work before importing a new file."  # noqa: E501
-                        ),  # noqa: E501
+                            "To avoid losing any work, we recommend exporting your latest work before "
+                            "importing a new file."
+                        ),
                         icon=":material/file_upload:",
                         use_container_width=True,
                     ):
@@ -858,6 +947,9 @@ class ProcessCheck:
         Handles navigation between principles via Previous/Next buttons and card selection.
         Automatically saves workspace data and refreshes the page when needed.
         """
+        if "scroll_to_top" not in st.session_state:
+            st.session_state["scroll_to_top"] = False
+
         # Apply main styles
         st.markdown(get_main_styles(), unsafe_allow_html=True)
 
@@ -890,6 +982,10 @@ class ProcessCheck:
                 st.rerun()
 
         with right_col:
+            if st.session_state["scroll_to_top"]:
+                scroll_to_here(0, key="top")
+                st.session_state["scroll_to_top"] = False
+
             # Get currently selected principle
             current_index = st.session_state["cards_component"]
             if 0 <= current_index < len(friendly_principles_names):
@@ -915,6 +1011,7 @@ class ProcessCheck:
                     st.session_state["cards_component"] = max(
                         0, st.session_state["cards_component"] - 1
                     )
+                    st.session_state["scroll_to_top"] = True
                     st.rerun()
             with nav_col3:
                 if st.button(
@@ -927,6 +1024,7 @@ class ProcessCheck:
                         len(friendly_principles_names) - 1,
                         st.session_state["cards_component"] + 1,
                     )
+                    st.session_state["scroll_to_top"] = True
                     st.rerun()
 
         # Save workspace data

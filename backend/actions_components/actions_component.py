@@ -84,17 +84,20 @@ def create_actions_component(
                 content: attr(data-tooltip);
                 position: fixed;
                 opacity: 0;
-                transition: opacity 0.15s ease;
                 padding: 10px;
                 color: #333;
                 border-radius: 10px;
                 box-shadow: 2px 2px 1px silver;
                 background: #f3f4f6;
                 z-index: 9999;
-                width: max-content;
-                max-width: 200px;
+                width: 300px;
                 font-size: 12px;
                 pointer-events: none;
+                /* Ensure tooltip text uses system font, not Material Symbols */
+                font-family: system-ui, -apple-system, sans-serif;
+                margin-top: 20px; /* Added margin-top to shift tooltip lower */
+                white-space: normal;
+                word-wrap: break-word;
             }
             
             [data-tooltip]:hover::before {
@@ -153,9 +156,12 @@ def create_actions_component(
                         <div class="workspace-info-field">Application Description</div>
                         <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
                     </div>
-                    <div style="margin-top: 16px; width: 15%; overflow: hidden;">
-                        <div class="workspace-info-field workspace-id-field" data-tooltip="This is your unique workspace identifier. It's used to track and manage your workspace data.">Workspace ID</div>
-                        <span class="workspace-id-tag" id="workspace-id" style="margin-top: 10px; display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
+                    <div>
+                        <span class="workspace-info-field workspace-id-field">Workspace ID</span>
+                        <span class="workspace-info-field workspace-id-field material-symbols-rounded" style="font-size: 14px; cursor: pointer;" data-tooltip="This is your unique workspace identifier. Once named, it cannot be changed. If you access the tool again and want to pick up where you left off, you can find your previous work through this workspace ID.">help</span>
+                    </div>
+                    <div style="overflow: hidden; margin-top: 10px;">
+                        <span class="workspace-id-tag" id="workspace-id" style="display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
                     </div>
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
@@ -321,9 +327,7 @@ def create_actions_component_no_excel(
             
             .workspace-info-value {
                 font-size: 15px;
-                font-weight: 600;
                 color: #111827;
-                line-height: 1.5;
                 margin-bottom: 16px;
                 display: block;
             }
@@ -349,17 +353,20 @@ def create_actions_component_no_excel(
                 content: attr(data-tooltip);
                 position: fixed;
                 opacity: 0;
-                transition: opacity 0.15s ease;
                 padding: 10px;
                 color: #333;
                 border-radius: 10px;
                 box-shadow: 2px 2px 1px silver;
                 background: #f3f4f6;
                 z-index: 9999;
-                width: max-content;
-                max-width: 200px;
+                width: 300px;
                 font-size: 12px;
                 pointer-events: none;
+                /* Ensure tooltip text uses system font, not Material Symbols */
+                font-family: system-ui, -apple-system, sans-serif;
+                margin-top: 20px; /* Added margin-top to shift tooltip lower */
+                white-space: normal;
+                word-wrap: break-word;
             }
             
             [data-tooltip]:hover::before {
@@ -409,27 +416,31 @@ def create_actions_component_no_excel(
     <body>
         <div id="actions-container">
             <div class="workspace-info-container">
-                <div class="workspace-info-left">
+                <div class="workspace-info-left" style="width: 400px;">
                     <div>
                         <div class="workspace-info-field">Company Name</div>
                         <span class="workspace-info-value" id="company-name"></span>
                     </div>
-                    <div>
+                    <div style="width: 100%; overflow: hidden;">
                         <div class="workspace-info-field">Application Name</div>
-                        <span class="workspace-info-value" id="app-name"></span>
+                        <span class="workspace-info-value" id="app-name" style="display: block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"></span>
+                    </div>
+                    <div style="width: 100%; overflow: hidden;">
+                        <div class="workspace-info-field">Application Description</div>
+                        <span class="workspace-info-description" id="app-description" style="display: block; white-space: pre-wrap; word-wrap: break-word;"></span>
                     </div>
                     <div>
-                        <div class="workspace-info-field">Application Description</div>
-                        <span class="workspace-info-description" id="app-description"></span>
+                        <span class="workspace-info-field workspace-id-field">Workspace ID</span>
+                        <span class="workspace-info-field workspace-id-field material-symbols-rounded" style="font-size: 14px; cursor: pointer;" data-tooltip="This is your unique workspace identifier. Once named, it cannot be changed. If you access the tool again and want to pick up where you left off, you can find your previous work through this workspace ID.">help</span>
                     </div>
-                    <div style="margin-top: 16px; width: 15%; overflow: hidden;">
-                        <div class="workspace-info-field workspace-id-field" data-tooltip="This is your unique workspace identifier. It's used to track and manage your workspace data.">Workspace ID</div>
-                        <span class="workspace-id-tag" id="workspace-id" style="margin-top: 10px; display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
+                    <div style="overflow: hidden; margin-top: 10px;">
+                        <span class="workspace-id-tag" id="workspace-id" style="display: inline-block; max-width: 100%; text-overflow: ellipsis; overflow: hidden;"></span>
                     </div>
                     <button class="edit-btn" id="edit-button">
                         <span class="material-symbols-rounded material-icon">edit</span>
                     </button>
                 </div>
+                <div class="workspace-info-divider"></div>
             </div>
         </div>
         

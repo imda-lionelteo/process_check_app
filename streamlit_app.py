@@ -247,6 +247,11 @@ def main():
     Returns:
         None
     """
+    # Initialize the application if section is not set
+    if "section" not in st.session_state:  # Check if section is not initialized
+        logger.info("Initializing the application.")
+        st.session_state["section"] = 0
+
     # Check if the server has already been started
     if "server_started" not in st.session_state:
         # Start the HTTP server in a new thread
@@ -258,13 +263,6 @@ def main():
 
         # Set the flag to indicate the server has been started
         st.session_state["server_started"] = True
-
-    # If it is a new session, initialize the application
-    if len(st.session_state) == 1 and "server_started" in st.session_state:
-        logger.info("Initializing the application.")
-
-        # Initialize a new workspace
-        st.session_state["section"] = 0
 
     # Set the page layout and width
     set_custom_width_layout()

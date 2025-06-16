@@ -9,7 +9,10 @@ from backend.workspace import initialize, load_workspace, save_workspace
 def display_generate_report():
     """
     Main entry point for the report generation interface.
-    Initializes session state, displays the report form, and navigation buttons.
+
+    Initializes session state variables, displays the report generation form with
+    application information editing capabilities, and navigation buttons for moving
+    between sections.
     """
     initialize_session_state()
     display_report_form()
@@ -18,7 +21,12 @@ def display_generate_report():
 
 def initialize_session_state():
     """
-    Ensure required session state variables are initialized.
+    Initialize required session state variables if they don't exist.
+
+    Sets up:
+    - workspace_id: Unique identifier for the current workspace
+    - workspace_data: Data associated with the current workspace
+    - section: Current section number in the process checks flow
     """
     if "workspace_id" not in st.session_state:
         initialize(workspace_id="default")
@@ -33,7 +41,10 @@ def initialize_session_state():
 def render_action_buttons():
     """
     Render action buttons for editing application information.
-    Handles transition to edit mode if user chooses to edit.
+
+    Displays a component with application details and an edit button.
+    When edit is clicked, transitions to edit mode by updating session state
+    and triggering a page rerun.
     """
     workspace_id = st.session_state.get("workspace_id", "")
     company_name = st.session_state["workspace_data"].get("company_name", "")
@@ -60,7 +71,14 @@ def render_action_buttons():
 def display_edit_form():
     """
     Display a form for editing application information.
-    Handles saving or canceling changes.
+
+    Shows input fields for:
+    - Company name
+    - Application name
+    - Application description
+
+    Validates required fields and handles saving or canceling changes.
+    Updates workspace data and triggers page refresh on successful save.
     """
     current_data = st.session_state["workspace_data"]
     with st.form("edit_app_info_form"):
@@ -130,8 +148,14 @@ def display_edit_form():
 
 def display_report_form():
     """
-    Display the form for generating the report.
-    Renders action buttons and a button to generate and preview the PDF report.
+    Display the form for generating and previewing the PDF report.
+
+    Shows:
+    - Application information with edit capability
+    - Generate Report button
+    - PDF preview when report is generated
+    - Download button for the generated report
+    - End of tool message with contact information
     """
     st.markdown(
         """
@@ -146,13 +170,24 @@ def display_report_form():
     st.write("## Generate Your Report")
     render_action_buttons()
 
+    # Initialize session state for report generation
+    if "report_generated" not in st.session_state:
+        st.session_state["report_generated"] = False
+        st.session_state["pdf_file_path"] = None
+
     if st.button("Generate Report", type="primary"):
         with st.spinner("Generating your report..."):
             pdf_file_path = generate_pdf_report(st.session_state["workspace_data"])
-            st.markdown("---")
-            st.markdown("#### Preview Your Report")
-            display_pdf_preview(GENERATED_REPORT_NAME)
+            st.session_state["report_generated"] = True
+            st.session_state["pdf_file_path"] = pdf_file_path
 
+    if st.session_state["report_generated"]:
+        st.markdown("---")
+        st.markdown("#### Preview Your Report")
+        display_pdf_preview(GENERATED_REPORT_NAME)
+
+        pdf_file_path = st.session_state["pdf_file_path"]
+        if pdf_file_path:
             with open(pdf_file_path, "rb") as pdf_file:
                 pdf_bytes = pdf_file.read()
                 st.download_button(
@@ -165,21 +200,24 @@ def display_report_form():
                     type="primary",
                 )
 
-            st.markdown(
-                "<div style='text-align: center; color: #4C1D95; font-size: 1.2em; margin: 20px 0;'>"
-                "You’ve reached the end of the tool.<br><br>"
-                "To start a new process checks, click Home. Otherwise, you may safely close this window.<br><br>"
-                "We encourage you to share your report with stakeholders to demonstrate responsible AI practices and build trust in your applications. We also welcome your feedback and experiences with this framework and tool — please share them with us at info@aiverify.sg"  # noqa: E501
-                "</div>",
-                unsafe_allow_html=True,
-            )
+        st.markdown(
+            "<div style='text-align: center; color: #4C1D95; font-size: 1.2em; margin: 20px 0;'>"
+            "You've reached the end of the tool.<br><br>"
+            "To start a new session of process checks, click Home. Otherwise, you may safely close this window.<br><br>"  # noqa: E501
+            "We encourage you to share the Summary Report with your stakeholders to build trust. We also welcome your feedback on this framework and tool. Please share your experience with us at <a href='mailto:info@aiverify.sg' style='color: #4C1D95; text-decoration: underline;'>info@aiverify.sg</a>"  # noqa: E501
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 def display_pdf_preview(pdf_file_path):
     """
     Display a preview of the generated PDF report in an iframe.
+
     Args:
-        pdf_file_path (str): The file path of the PDF to be displayed.
+        pdf_file_path (str): The file path of the PDF to be displayed in the preview iframe.
+
+    The preview is displayed in a centered container with fixed width and height.
     """
     st.markdown(
         f"""
@@ -192,13 +230,20 @@ def display_pdf_preview(pdf_file_path):
 
 
 def click_back_button():
-    """Navigate to the previous section."""
+    """
+    Navigate to the previous section by decrementing the section counter in session state.
+    """
     st.session_state["section"] -= 1
 
 
 def click_start_over_button():
     """
-    Show a confirmation dialog to return to the home page and clear session state.
+    Show a confirmation dialog for returning to the home page.
+
+    Displays a dialog with Yes/No options. If confirmed:
+    - Preserves server_started state
+    - Clears all other session state
+    - Triggers page rerun
     """
 
     @st.dialog("Return to Home Page")
@@ -225,8 +270,13 @@ def click_start_over_button():
 
 def display_navigation_buttons():
     """
-    Display navigation buttons for moving between sections of the process checks.
-    Shows Back and Start Over buttons as appropriate.
+    Display navigation buttons for moving between sections.
+
+    Shows:
+    - Home button (if section >= 1)
+    - Back button (if section > 1)
+
+    Buttons are arranged in a multi-column layout with appropriate spacing.
     """
     if st.session_state["section"] >= 1:
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)

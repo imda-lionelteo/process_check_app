@@ -9,10 +9,14 @@ from backend.workspace import (
     save_workspace,
     workspace_file_exists,
 )
+from frontend.styles.get_started_styles import get_started_styles
 
 # File paths and URLs for resources
-GETTING_STARTED_DIAG_PATH = "assets/images/getting_started_diag.png"
+GETTING_STARTED_DIAGRAM_PATH = "assets/images/getting_started_diagram.png"
+GETTING_STARTED_HOW_TO_USE_PATH = "assets/images/getting_started_how_to_use.png"
+TESTING_FRAMEWORK_FILE_URL_PDF = "https://go.gov.sg/aivtf-pdf"
 TESTING_FRAMEWORK_FILE_URL_EXCEL = "https://go.gov.sg/aivtf-excel"
+TESTING_FRAMEWORK_SAMPLE_REPORT_URL = "https://go.gov.sg/aiv-summary-report-genai"
 
 
 def click_back_button() -> None:
@@ -66,18 +70,6 @@ def click_next_button() -> None:
             help="Briefly describe the application being assessed, including its purpose, key features, and any relevant context. This will help provide a clearer understanding of the application for your stakeholders reading the report",  # noqa: E501
             max_chars=256,
             height=150,
-        )
-
-        # Disable resizing of text area with custom CSS
-        st.markdown(
-            """
-            <style>
-                textarea {
-                    resize: none !important;
-                }
-            </style>
-            """,
-            unsafe_allow_html=True,
         )
 
         # Input field for workspace name
@@ -146,7 +138,6 @@ def click_next_button() -> None:
                     workspace_data = {
                         "workspace_id": sanitized_file_name,
                         "created_at": datetime.now().isoformat(timespec="seconds"),
-                        "last_updated": datetime.now().isoformat(timespec="seconds"),
                         "company_name": sanitized_company_name,
                         "app_name": sanitized_app_name,
                         "app_description": sanitized_app_description,
@@ -205,26 +196,21 @@ def display_getting_started() -> None:
     """
     Display the 'Getting Started' page for the application.
 
-    Shows instructions on understanding the testing framework, beginning process checks,
-    uploading technical test results, and generating a report.
+    This function renders the main content of the Getting Started page, which includes:
+    - An overview of the testing framework and its 11 principles
+    - Links to download the framework documentation in PDF and Excel formats
+    - Instructions for completing process checks with visual examples
+    - Information about uploading optional technical test results
+    - Guidance on generating and using the final summary report
+
+    The content is displayed using Streamlit components like st.write(), st.image(),
+    and st.info() with custom styling applied for headers.
 
     Returns:
         None
     """
     # Add custom CSS for purple headers
-    st.markdown(
-        """
-        <style>
-        h3 {
-            color: #4C1D95 !important;  /* Purple color */
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        </style>
-    """,
-        unsafe_allow_html=True,
-    )
-
+    st.markdown(get_started_styles(), unsafe_allow_html=True)
     st.write(
         """
         ### Understand the testing framework
@@ -233,38 +219,37 @@ def display_getting_started() -> None:
         The implementation of these processes can be validated through documentary evidence.
     """
     )
-    st.image(GETTING_STARTED_DIAG_PATH)
+    st.image(GETTING_STARTED_DIAGRAM_PATH, use_container_width=True)
     st.info(
         f"""
         You can download a copy of the testing framework here\n
-        [Download Testing Framework - PDF](https://go.gov.sg/aivtf-pdf)\n
-        [Download Testing Framework - Excel]({TESTING_FRAMEWORK_FILE_URL_EXCEL})
+        [PDF version]({TESTING_FRAMEWORK_FILE_URL_PDF})\n
+        [Excel version]({TESTING_FRAMEWORK_FILE_URL_EXCEL})
     """
     )
-
     st.write(
         """
         ### Begin the Process Checks
-        - Familiarise yourself with the testing framework: principles, desired outcomes and testing processes 
-        - For each process, select one of the following options: Yes, No or Not Applicable
-
-            **1. Yes:** If the process is implemented, you can provide supporting evidence
-
-            **2. No:** If the process is not implemented, provide reasons to show that the decision is a deliberate and considered one
-            
-            **3. Not Applicable:** If the process does not apply to your application, you can provide reasons to show that the decision is a deliberate and considered one
-
+        Each item in the checklist consists of:
+        """
+    )
+    st.image(GETTING_STARTED_HOW_TO_USE_PATH, use_container_width=True)
+    st.write(
+        f"""
         ### Upload Technical Tests Results (Optional):
-        If you wish to include results from technical tests conducted using Project Moonshot, you can upload the results in **Section 4 (Upload Technical Test Results)** of this tool.
-        Reports generated after uploading technical test results will include both process checks and technical test outcomes.
+        If you wish to include results from technical tests conducted using Project Moonshot, you can upload the
+        results in **Section 4 (Upload Technical Test Results)** of this tool.
+        Reports generated after uploading technical test results will include both process checks
+        and technical test outcomes.
         
-        
-        If you do not have any technical test results from Project Moonshot, you can skip this section without concern.
+        If you do not have any technical test results from Project Moonshot, you can skip this step without concern.
         The generated report will still provide valuable insights based on the process checks.
 
         ### Generate and Use the Report
-        - Once all process checks are completed and technical tests results uploaded (if applicable), you can generate a summary report
-        - Use this report to identify areas for improvement, demonstrate responsible AI practices, and build trust with your stakeholders
+        - Once all process checks are completed and technical tests results uploaded (if applicable),
+        you can generate a summary report. Download a sample report [here]({TESTING_FRAMEWORK_SAMPLE_REPORT_URL})
+        - Use this report to identify areas for improvement, demonstrate responsible AI practices,
+        and build trust with your stakeholders
     """  # noqa: E501, W291, W293
     )
 

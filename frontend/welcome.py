@@ -1,9 +1,16 @@
 import streamlit as st
+from backend.map import get_map_color_mapping
+from frontend.styles.welcome_styles import get_welcome_custom_css
+
+# Path to welcome page image asset
+WELCOME_IMAGE_PATH = "assets/images/welcome_image.png"
 
 
 def click_back_button():
     """
-    Decrement the 'section' in the session state to navigate to the previous section.
+    Navigate to the previous section by decrementing the section counter.
+
+    Decrements the 'section' value in the session state to move back one section.
 
     Returns:
         None
@@ -13,7 +20,9 @@ def click_back_button():
 
 def click_next_button():
     """
-    Increment the 'section' in the session state to navigate to the next section.
+    Navigate to the next section by incrementing the section counter.
+
+    Increments the 'section' value in the session state to advance one section.
 
     Returns:
         None
@@ -25,14 +34,15 @@ def click_start_over_button() -> None:
     """
     Return to the home page by clearing the session state.
 
-    Displays a confirmation dialog before returning to the home page.
-    Progress is automatically saved, so no data will be lost.
+    Displays a confirmation dialog before resetting. Progress is automatically saved
+    to persistent storage, so no data will be lost. Preserves the server_started flag
+    when clearing session state.
 
     Returns:
         None
     """
 
-    # Using st.dialog as a function decorator
+    # Using st.dialog as a function decorator to create modal dialog
     @st.dialog("Return to Home Page")
     def confirm_reset_dialog() -> None:
         st.write(
@@ -57,11 +67,14 @@ def click_start_over_button() -> None:
 
 def display_navigation_buttons() -> None:
     """
-    Display navigation buttons for moving between sections of the process checks.
+    Display navigation buttons for moving between sections.
 
-    Shows Back, Start Over, and Next buttons as appropriate based on the current section.
-    Only displays navigation controls when the user has progressed beyond the triage section.
-    The Next button is always displayed for sections 1-4 when appropriate.
+    Shows a combination of Home, Back and Next buttons based on the current section:
+    - Home button shown for sections >= 1
+    - Back button shown for sections > 1
+    - Next button shown for sections 1-4
+
+    Adds a divider line above buttons for sections >= 1.
 
     Returns:
         None
@@ -70,7 +83,7 @@ def display_navigation_buttons() -> None:
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
         st.markdown("---")
 
-    # Regular navigation buttons
+    # Create 4 columns with specific width ratios for button layout
     col1, _, col2, col3 = st.columns([2, 6, 2, 2])
     with col1:
         if st.session_state["section"] >= 1:
@@ -83,7 +96,7 @@ def display_navigation_buttons() -> None:
         if st.session_state["section"] > 1:
             st.button("← Back", on_click=click_back_button, use_container_width=True)
     with col3:
-        # Display the Next button for sections 1-4
+        # Only show Next button for sections 1-4
         if st.session_state["section"] < 5 and st.session_state["section"] >= 1:
             st.button(
                 "Next →",
@@ -94,74 +107,90 @@ def display_navigation_buttons() -> None:
 
 def welcome():
     """
-    Display the introduction page for the AI Verify Process Checklist application.
+    Display the welcome/introduction page for the AI Verify Process Checklist.
 
-    This function shows information about the testing framework, its benefits,
-    target users, and principles covered. It also provides navigation buttons
-    to move between sections.
+    Renders a comprehensive introduction page that includes:
+    - Overview of the testing framework and its purpose
+    - Target audience descriptions (AI owners, compliance teams, auditors)
+    - List of 11 AI governance principles covered
+    - Links to mapped international frameworks (NIST, ISO, Hiroshima Process)
+    - Framework mapping indicators/badges
+    - Information about technical testing capabilities
+
+    Applies custom styling for headers and framework badges.
+    Includes navigation controls at the bottom.
+
+    Returns:
+        None
     """
-    # Add custom CSS for purple headers
-    st.markdown(
-        """
-        <style>
-        h3 {
-            color: #4C1D95 !important;  /* Purple color */
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Apply custom purple styling for headers and cards
+    st.markdown(get_welcome_custom_css(), unsafe_allow_html=True)
 
     st.write(
         """
         ### AI Verify Testing Framework for Generative AI - Process Checks
-        This tool helps you assess and document the responsible AI practices that you have
-        implemented in deploying your Generative AI application, and generate a summary report. 
+        This tool helps you assess and document the responsible AI practices that you have implemented in deploying
+        your Generative AI application, and generate a summary report.
 
         ### How can the Testing Framework and Generated Report help companies?
-        - Transparency and Trust: Share the report with your stakeholders to demonstrate responsible AI practices and build trust in your applications
+    """
+    )
 
-        - Risk Management: Identify potential gaps and take corrective actions to ensure alignment with international standards 
-        - Global Alignment: Demonstrate alignment with Singapore's AI Verify testing framework and other international frameworks like US NIST AI Risk Management Framework – Generative AI Profile, and G7 Code of Conduct 
-        - Continuous Improvement: Regularly update your validation to ensure ongoing alignment with evolving AI governance regulations
+    # Display welcome image
+    st.image(WELCOME_IMAGE_PATH, use_container_width=True)
 
+    st.write(
+        """
         ### Who should use this tool?
         - **AI Application Owners / Developers** looking to demonstrate and document responsible AI governance practices
 
         - **Internal Compliance Teams** looking to ensure responsible AI practices have been implemented
+
         - **External Auditors** looking to validate your clients' implementation of responsible AI practices
 
         ### About the Testing Framework Process Checks
-        The testing framework covers responsible AI practices and measures that are aligned with 11 internationally recognised AI governance principles:
-        1. Transparency 
-        2. Explainability 
-        3. Repeatability / Reproducibility
-        4. Safety 
-        5. Security 
-        6. Robustness
-        7. Fairness
-        8. Data Governance 
-        9. Accountability 
-        10. Human Agency and Oversight 
-        11. Inclusive Growth, Societal and Environmental Well-being
-        
+        The testing framework covers responsible AI practices and measures that are aligned with 11 internationally
+        recognised AI governance principles:
+
+
+        1.	Transparency
+        2.	Explainability
+        3.	Repeatability / Reproducibility
+        4.	Safety
+        5.	Security
+        6.	Robustness
+        7.	Fairness
+        8.	Data Governance
+        9.	Accountability
+        10.	Human Agency and Oversight
+        11.	Inclusive Growth, Societal and Environmental Well-being
+
+
         The processes in the testing framework are mapped to the following international frameworks:
+        - [U.S. National Institute of Standards and Technology  Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile (US NIST AI RMF)](https://go.gov.sg/crosswalk-aivtfxairmf-genaiprofile)
+        - [ISO/IEC 42001: 2023 - AI Management System](https://go.gov.sg/crosswalk-aivtf-iso42001)
         - [Hiroshima Process International Code of Conduct for Organizations Developing Advanced AI Systems (Hiroshima Process CoC)](https://go.gov.sg/crosswalk-aivtf-coc)
+    """  # noqa: E501
+    )
 
-        - [U.S. National Institute of Standards and Technology (NIST) Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile (US NIST AI RMF)](https://go.gov.sg/crosswalk-aivtfxairmf-genaiprofile)
+    st.markdown(
+        f"""
+        AI Verify processes that are mapped to these frameworks will have respective labels next to them e.g.,
+        {"".join(f":{color}-badge[{name}]" for color, name in get_map_color_mapping().items())}
+        """
+    )
 
-        AI Verify processes that are mapped to these frameworks will have respective labels e.g. "Hiroshima Process CoC" or "US NIST AI RMF" next to them.
-
+    st.write(
+        """
         ### Technical Testing for Generative AI Applications
         In the process checks, references were made to conduct technical tests on the Generative AI applications.
         These can be achieved through the use of technical testing tools such as Project Moonshot.
 
-        Only results from the technical tests conducted using Project Moonshot can be uploaded into this tool to be included in the summary report.
-        Access Project Moonshot [here](https://github.com/aiverify-foundation).
-    """  # noqa: E501, W291, W293
+
+        Only results from the technical tests conducted using Project Moonshot can be uploaded into this tool to be
+        included in the summary report. Access Project Moonshot [here](https://github.com/aiverify-foundation).
+        """  # noqa: E501, W291, W293
     )
 
-    # Display the navigation buttons
+    # Add navigation controls at bottom of page
     display_navigation_buttons()

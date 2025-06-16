@@ -8,13 +8,13 @@ def get_map_color_mapping():
     Returns:
         dict: A dictionary mapping colors to framework names.
             - 'blue': US NIST AI RMF
-            - 'violet': Hiroshima Process CoC
             - 'green': ISO 42001
+            - 'violet': Hiroshima Process CoC
     """
     return {
         "blue": "US NIST AI RMF",
-        "violet": "Hiroshima Process CoC",
         "green": "ISO 42001",
+        "violet": "Hiroshima Process CoC",
     }
 
 
